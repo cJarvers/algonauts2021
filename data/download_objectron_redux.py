@@ -60,8 +60,9 @@ def download_video(vidname, fname):
         f.write(video.content)
 
 def clip_video(fname, tstart=0, tend=3):
-    ffmpeg_extract_subclip(fname, tstart, tend, targetname='cut.mov')
-    os.rename('cut.mov', fname)     
+    temp = os.path.dirname(fname) + 'cut.mov'
+    ffmpeg_extract_subclip(fname, tstart, tend, targetname=temp)
+    os.rename(temp, fname)     
 
 def get_clip_video(vidname, fname, tstart=0, tend=3, force=False):
     if not os.path.exists(os.path.dirname(fname)): # create folder if it does not exist yet
