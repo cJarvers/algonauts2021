@@ -1,20 +1,25 @@
-# Algonauts2021-devkit
+# Algonauts 2021 submission code
+
+This repository contains training and evaluation code for a submission to the Algonauts 2021 challenge by the vision and perception science group at the Institute for Neural Information Processing, Ulm University.
+
+The code is based on the Algonauts2021 devkit (https://github.com/Neural-Dynamics-of-Visual-Cognition-FUB/Algonauts2021_devkit).
 
 | Update: To make participation simpler, we have created a <a href="https://colab.research.google.com/drive/1FljzKYPtE5sYoSHQ4g02re3iruEPI0Vz?usp=sharing">Google Colab </a> where you can prepare challenge submission online.|
 |------------------------------------------------------------------------|
 
 
-This repository provides the code to predict human fMRI responses for videos from features of a baseline deep neural network (DNN) model (AlexNet). We further provide scripts to prepare the submission for the Algonauts 2021 challenge.  The terms features and activations are used interchangeably in the code.
+## Overview
 
-**IMPORTANT: The Alexnet example is provided to explain how to prepare submissions using a baseline model. Please prepare your results in same format to participate in the challenge.!**
+- the folder `data` contains scripts to download, preprocess and load the training datasets
+- the folders `feature_extraction` and `utils` contain code from the original devkit
+
+
 
 ## Setup
-* Install <a href="https://docs.anaconda.com/anaconda/install/">anaconda</a>
-* Clone the repository ```git clone https://github.com/Neural-Dynamics-of-Visual-Cognition-FUB/Algonauts2021_devkit.git```
-* Change working directory ```cd Algonauts2021_devkit```
-* Run ```conda create -n Algonauts2021 python=3.7 anaconda``` to setup a new conda environment with required libraries
-* Activate environment ```conda activate Algonauts2021```
+* Clone the repository ```git clone https://github.com/cJarvers/algonauts2021.git```
+* Set up a virtual environment (using `virtualenv` or `conda`)
 * Install <a href="https://nilearn.github.io/introduction.html#installation">nilearn </a>, <a href="https://pytorch.org/">pytorch </a>, <a href="https://github.com/dmlc/decord#installation">decord </a> and <a href="https://github.com/opencv/opencv-python">opencv </a>
+* Change working directory ```cd algonauts2021```
 * Download the data <a href="https://forms.gle/qq9uqqu6SwN8ytxQ9">here</a> (if not already downloaded)and unzip in the working directory. Data is organized in two directories
    * AlgonautsVideos268_All_30fpsmax : contains 1102 videos: training (first 1000) and test (last 102) videos.
    * participants_data_v2021 : contains fMRI responses to training videos for both the challenge tracks.
@@ -74,7 +79,7 @@ This repository provides the code to predict human fMRI responses for videos fro
 
 ## Cite
 
-If you use our code, partly or as is,  please cite the paper below
+If you use our code, partly or as is, please cite the paper below
 
 ```
 @misc{cichy2021algonauts,
