@@ -37,7 +37,7 @@ def get_vidnames(classes=classes, subset='train'):
         raise ValueError('Unknown subset: {}'.subset)
     # download index files for all classes
     for c in classes:
-        names = requests.get(public_url + '/v1/index/' + c + suffix).text.split('\n')
+        names = requests.get(public_url + '/v1/index/' + c + suffix).text.split('\n')[:-1]
         for vname in names:
             vnames.append((c, vname))
     return vnames
