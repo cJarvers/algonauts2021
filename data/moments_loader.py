@@ -1,7 +1,7 @@
 '''
 Wrapper / loader for Moments in Time dataset.
 '''
-from math import ceil
+from math import floor
 import os
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -40,8 +40,8 @@ def subsample(video, nsamples):
     Subsamples a video to have the specified number of frames (nsamples).
     '''
     frames = video.size()[0]
-    step = ceil(frames / nsamples)
-    return(video[::step, :, :,:])
+    step = floor(frames / nsamples)
+    return(video[0:nsamples*step:step, :, :, :])
 
 
 class MomentsDataset(Dataset):
