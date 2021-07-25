@@ -67,23 +67,25 @@ class BottleneckBlock(nn.Module):
     Args:
         *inplanes (int): number of input channels
         *planes (int): number of channels used within the block
+        *groups (int, default 32): number of groups for GroupNorm
         *stride (int, default 1): stride for inner (3x3x3) convolution
         *downsample (default None): operation by which input is downsampled, if desired
     '''
     expansion = 4
     
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, groups=32, stride=1, downsample=None):
         super(BottleneckBlock, self).__init__()
         # remember important parameters:
         self.stride = stride
         self.downsample = downsample
+        self.groups = groups
         # construct sublayers:
         self.conv1 = nn.Conv3d(inplanes, planes, kernel_size=1, bias=False)
-        self.norm1 = nn.BatchNorm3d(planes) # TODO: replace by GroupNorm???
+        self.norm1 = nn.GroupNorm(groups, planes)
         self.conv2 = nn.Conv3d(planes, planes, kernel_size=3, bias=False, stride=stride, padding=1)
-        self.norm2 = nn.BatchNorm3d(planes) # TODO: replace by GroupNorm???
+        self.norm2 = nn.GroupNorm(groups, planes)
         self.conv3 = nn.Conv3d(planes, planes * self.expansion, kernel_size=1, bias=False)
-        self.norm3 = nn.BatchNorm3d(planes * self.expansion) # TODO: replace by GroupNorm??? 
+        self.norm3 = nn.GroupNorm(groups, planes * self.expansion)
         self.relu = nn.ReLU(inplace=True)
         
     def forward(self, x):
@@ -108,26 +110,26 @@ class BottleneckBlock(nn.Module):
 class ResNet3D50(nn.Module):
     ''' '''
     
-    def __init__(self, blocktype, layers, num_classes, shortcuttype='B'):
+    def __init__(self, blocktype, layers, num_classes, groups=32, shortcuttype='B'):
         super(ResNet3D50, self).__init__()
         # set up initial (non-residual) convolution
         self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(1, 2, 2), padding=(3, 3, 3), bias=False)
-        self.norm1 = nn.BatchNorm3d(64) # TODO: replace by GroupNorm???
+        self.norm1 = nn.GroupNorm(groups, 64)
         self.relu = nn.ReLU(inplace=True)
         self.pool1 = nn.MaxPool3d(kernel_size=(3, 3, 3), stride=2, padding=1)
         # set up residual blocks
         self.inplanes = 64
-        self.block1 = self._make_layer(blocktype, 64, layers[0], shortcuttype)
-        self.block2 = self._make_layer(blocktype, 128, layers[1], shortcuttype, stride=2)
-        self.block3 = self._make_layer(blocktype, 256, layers[2], shortcuttype, stride=2)
-        self.block4 = self._make_layer(blocktype, 512, layers[3], shortcuttype, stride=2)
+        self.block1 = self._make_layer(blocktype, 64, layers[0], shortcuttype, groups=groups)
+        self.block2 = self._make_layer(blocktype, 128, layers[1], shortcuttype, groups=groups, stride=2)
+        self.block3 = self._make_layer(blocktype, 256, layers[2], shortcuttype, groups=groups, stride=2)
+        self.block4 = self._make_layer(blocktype, 512, layers[3], shortcuttype, groups=groups, stride=2)
         self.avgpool = nn.AdaptiveAvgPool3d(1)
         self.fc = nn.Linear(512 * blocktype.expansion, num_classes)
         # initialize the layer weights
         self.init_weights()
         
 
-    def _make_layer(self, blocktype, planes, repetitions, shortcut_type, stride=1):
+    def _make_layer(self, blocktype, planes, repetitions, shortcut_type, groups=32, stride=1):
         downsample = None
         # choose appropriate downsampling operatino
         if stride != 1 or self.inplanes != planes * blocktype.expansion:
@@ -146,11 +148,11 @@ class ResNet3D50(nn.Module):
                         stride=stride,
                         bias=False,
                     ),
-                    nn.BatchNorm3d(planes * blocktype.expansion), # TODO: replace by GroupNorm???
+                    nn.GroupNorm(groups, planes * blocktype.expansion),
                 )
         # repeat the desired block for the required number of times
         layers = []
-        layers.append(blocktype(self.inplanes, planes, stride, downsample))
+        layers.append(blocktype(self.inplanes, planes, groups, stride, downsample))
         self.inplanes = planes * blocktype.expansion
         for _ in range(1, repetitions):
             layers.append(blocktype(self.inplanes, planes))
@@ -160,7 +162,7 @@ class ResNet3D50(nn.Module):
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out')
-            elif isinstance(m, nn.BatchNorm3d): # TODO: adapt for GroupNorm???
+            elif isinstance(m, nn.BatchNorm3d) or isinstance(m, nn.GroupNorm):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
                 
