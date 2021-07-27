@@ -10,7 +10,7 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 from trainer import Trainer
 from resnet3d import resnet50
-from dataset_ucf import UCFDataset, ToTensor
+from dataset import MomentsDataset, ToTensor
 from torchsummary import summary
 import time
 import copy
@@ -37,12 +37,12 @@ def main():
     cudnn.benchmark = True
     
     #prepare dataset
-    train_dataset = UCFDataset(root_dir=ucf_data_root, phase='train', transform=transforms.Compose([ToTensor()]))                                                                                                                                                                          
-    valid_dataset = UCFDataset(root_dir=ucf_data_root, phase='test', transform=transforms.Compose([ToTensor()]))
+    train_dataset = MomentsDataset(root_dir=mit_data_root, phase='train', nframes=16, transform=transforms.Compose([ToTensor()]))                                                                                                                                                                          
+    test_dataset = MomentsDataset(root_dir=mit_data_root, phase='test', nframes=16, transform=transforms.Compose([ToTensor()]))
                                                                                                                                                                           
     # Loading dataset into dataloader
     train_loader =  torch.utils.data.DataLoader(train_dataset,batch_size=train_batch_size,shuffle=True,num_workers=num_workers)                                        
-    val_loader =  torch.utils.data.DataLoader(valid_dataset,batch_size=test_batch_size,shuffle=True,num_workers=num_workers)
+    test_loader =  torch.utils.data.DataLoader(test_dataset,batch_size=test_batch_size,shuffle=True,num_workers=num_workers)
                                                   
     #start time for training
     start_time= time.time()
@@ -55,7 +55,7 @@ def main():
 
         # evaluate on validation set for every 3 epochs
         if (epoch+1)%3==0:
-          prec1 = trainer.validate(val_loader, epoch)
+          prec1 = trainer.validate(test_loader, epoch)
           print('Top Precision:',prec1)
 
         # remember best prec@1 and save checkpoint
