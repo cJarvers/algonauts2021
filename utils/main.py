@@ -61,7 +61,7 @@ def main():
         # remember best prec@1 and save checkpoint
         is_best = prec1 > best_prec1
         best_prec1 = max(prec1, best_prec1)
-        save_checkpoint(model.state_dict(), is_best, train_model_path)
+        save_checkpoint(model.state_dict(), is_best, trained_model_path)
 
     end_time = time.time()
     duration= (end_time - start_time)/3600
