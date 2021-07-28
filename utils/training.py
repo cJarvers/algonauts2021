@@ -29,6 +29,7 @@
 #         OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #         OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # The bits that have been reused are marked.
+import datetime
 import os
 import sys
 import tempfile
@@ -81,6 +82,10 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
     decoder = decoders[rank].to(dev)
     complete_model = nn.Sequential(ddp_model, decoder)
     
+    # add some debug information
+    print(f'Start on process {rank}: {datetime.datetime.now()}')
+    print(f'Running multidata_train on process {rank}, device {dev}')
+    
     loss_fn = losses[rank]
     optimizer = optim.SGD(complete_model.parameters(), lr=0.001)
     
@@ -93,7 +98,11 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
         loss = loss_fn(y_hat, y)
         loss.backward()
         optimizer.step()
+        print(f'Loss on process {rank}: {loss}')
     
+    print(f'Final network parameters on process {rank}: {list(model.parameters())}')
+    print(f'Final decoder parameters on process {rank}: {list(decoder.parameters())}')
+    print(f'End on process {rank}: {datetime.datetime.now()}')
     cleanup()
     
     
