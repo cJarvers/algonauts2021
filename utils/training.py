@@ -53,17 +53,17 @@ def cleanup():
     dist.destroy_process_group()
 
 
-def multidata_train(make_backbone, datasets, decoders, losses, devices, rank, world_size):
+def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses, devices):
     '''
     Trains the common network `backbone` on several datasets simultaneously.
     
     Args:
+        *rank (int): Process number that the current copy of the function is run on.
+        *world_size (int): Number of processes on which the function is run in parallel.
         *make_backbone: Constructor for network component that is common across all datasets
         *datasets: The datasets to train on. Each should be an iterable that yields batches.
         *decoders: The network components that differ for each dataset.
         *devices: The compute devices on which the networks should be trained.
-        *rank (int): Process number that the current copy of the function is run on.
-        *world_size (int): Number of processes on which the function is run in parallel.
         
     The lists `datasets`, `decoders`, `losses`, and `devices` have to be of the same length.
     Essentially, device i will get a batch from dataset i, put it through the backbone,
@@ -108,19 +108,23 @@ class ToyModel(nn.Module):
     def forward(self, x):
         return self.net2(self.relu(self.net1(x)))
 
-def demo(rank, world_size):
-    decoder = nn.Linear(5, 2)
-    xs = [torch.rand(1, 10), torch.rand(5, 10), torch.rand(3, 10)]
-    ys = [torch.rand(1, 2), torch.rand(5, 2), torch.rand(3, 2)]
-    data = zip(xs, ys) 
-    loss = torch.nn.MSELoss()
-    dev = torch.device(f'cuda:{rank}')
-    print(f"Running multidata DDP example on rank {rank}.")
-    multidata_train(ToyModel, [data], [decoder], [loss], [dev], rank, world_size) 
 
-# taken from PyTorch tutorial
-def run_demo(demo_fn, world_size):
-    mp.spawn(demo_fn,
-             args=(world_size,),
-             nprocs=world_size,
+def demo_2losses():
+    decoder1 = nn.Linear(5, 2)
+    decoder2 = nn.Linear(5, 3)
+    xs1 = [torch.rand(1, 10), torch.rand(5, 10), torch.rand(3, 10)]
+    xs2 = [torch.rand(2, 10), torch.rand(2, 10), torch.rand(2, 10)]
+    ys1 = [torch.rand(1, 2), torch.rand(5, 2), torch.rand(3, 2)]
+    ys2 = [torch.randint(3, (2,))] * 3
+    data1 = zip(xs1, ys1)
+    data2 = zip(xs2, ys2)
+    loss1 = torch.nn.MSELoss()
+    loss2 = torch.nn.CrossEntropyLoss()
+    dev1 = torch.device('cuda:0')
+    dev2 = torch.device('cuda:1')
+    # adjusted from PyTorch tutorial
+    mp.spawn(multidata_train,
+             args=(2, ToyModel, [data1, data2], [decoder1, decoder2], [loss1, loss2], [dev1, dev2]),
+             nprocs=2,
              join=True)
+
