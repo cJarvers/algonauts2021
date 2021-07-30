@@ -23,11 +23,11 @@ echo "Job directory: ${JOB_DIR}"
 
 # Copy the data that was used for the job (to track what has been used during execution)
 echo "Copying data from ${CODE_DIRECTORY} to ${JOB_DIR}"
-cp ${CODE_DIRECTORY}/utils/trainingdemo.py ${JOB_DIR}/trainingdemo.py
+cp -R ${CODE_DIRECTORY}/* ${JOB_DIR}
 
 # Switch to the job directory an execute the script
 cd ${JOB_DIR}
-singularity exec --nv --bind $(pwd):/mnt ${SINGULARITY_CONTAINER} python3 /mnt/trainingdemo.py
+singularity exec --nv --bind $(pwd):/mnt ${SINGULARITY_CONTAINER} python3 /mnt/utils/trainingdemo.py
 
 # Print metadata at the end
 date
