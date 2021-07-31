@@ -1,11 +1,11 @@
 '''
 Wrapper / loader for Moments in Time dataset.
 '''
-from math import floor
 import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torchvision
+from utils import subsample
 
 def read_csv(root_dir, phase):
     '''
@@ -34,14 +34,6 @@ def get_categories(root_dir):
             label = int(label)
             category_map[category] = label
     return category_map
-
-def subsample(video, nsamples):
-    '''
-    Subsamples a video to have the specified number of frames (nsamples).
-    '''
-    frames = video.size()[0]
-    step = floor(frames / nsamples)
-    return(video[0:nsamples*step:step, :, :, :])
 
 
 class MomentsDataset(Dataset):
