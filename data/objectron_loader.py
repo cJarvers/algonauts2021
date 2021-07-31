@@ -7,7 +7,7 @@ import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torchvision
-from utils import subsample
+from data.utils import subsample
 
 def get_paths(root_dir):
     '''

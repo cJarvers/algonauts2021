@@ -38,7 +38,7 @@ import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
 import torch.multiprocessing as mp
-from utils import AverageMeter()
+from utils.utils import AverageMeter
 
 from torch.nn.parallel import DistributedDataParallel as DDP
 
@@ -171,7 +171,7 @@ def demo_2losses():
     metric2 = lambda pred, y: 0.0
     dev1 = torch.device('cuda:0')
     dev2 = torch.device('cuda:1')
-    log_fn = lambda e, l, m, _, _, rank: print(f'Rank {rank}, epoch {e}: loss is {l},\t metric is {m}')
+    log_fn = lambda e, l, m, d1, d2, rank: print(f'Rank {rank}, epoch {e}: loss is {l},\t metric is {m}')
     # adjusted from PyTorch tutorial
     mp.spawn(multidata_train,
              args=(2, ToyModel, [(data1, data1), (data2, data2)], [decoder1, decoder2],
