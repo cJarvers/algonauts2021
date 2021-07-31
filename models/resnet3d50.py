@@ -50,17 +50,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-def downsample_basic_block(x, planes, stride):
-    '''One of the two possible downsampling operations used in ResNet3D50._make_layer()'''
-    out = F.avg_pool3d(x, kernel_size=1, stride=stride)
-    zero_pads = torch.Tensor(
-        out.size(0), planes - out.size(1),
-        out.size(2), out.size(3), out.size(4)).zero_()
-    if isinstance(out.data, torch.cuda.FloatTensor):
-        zero_pads = zero_pads.cuda()
-    out = torch.cat([out.data, zero_pads], dim=1)
-    return out
-
 class BottleneckBlock(nn.Module):
     '''Bottleneck block for a residual network with 3D convolutions.
     
@@ -70,6 +59,12 @@ class BottleneckBlock(nn.Module):
         *groups (int, default 32): number of groups for GroupNorm
         *stride (int, default 1): stride for inner (3x3x3) convolution
         *downsample (default None): operation by which input is downsampled, if desired
+        
+    We make a few adjustments to the standard ResNet architecture:
+    - We use GroupNorm (with 32 groups by default) instead of BatchNorm
+    - In the 3x3-convolution we use groups (as many as in GroupNorm), reducing the
+      number of free parameters
+    - Use stride in the 3x3 convolutions, rather than 1x1, as in https://arxiv.org/abs/1512.03385
     '''
     expansion = 4
     
@@ -82,7 +77,8 @@ class BottleneckBlock(nn.Module):
         # construct sublayers:
         self.conv1 = nn.Conv3d(inplanes, planes, kernel_size=1, bias=False)
         self.norm1 = nn.GroupNorm(groups, planes)
-        self.conv2 = nn.Conv3d(planes, planes, kernel_size=3, bias=False, stride=stride, padding=1)
+        self.conv2 = nn.Conv3d(planes, planes, kernel_size=3, bias=False,
+            stride=stride, padding=1, groups=groups)
         self.norm2 = nn.GroupNorm(groups, planes)
         self.conv3 = nn.Conv3d(planes, planes * self.expansion, kernel_size=1, bias=False)
         self.norm3 = nn.GroupNorm(groups, planes * self.expansion)
@@ -107,11 +103,13 @@ class BottleneckBlock(nn.Module):
         return y
 
 
-class ResNet3D50(nn.Module):
-    ''' '''
+class ResNet3D50Backbone(nn.Module):
+    '''
+    3D ResNet50 backbone (convolutional / residual layers only, not fc layers).
+    '''
     
-    def __init__(self, blocktype, layers, num_classes, groups=32, shortcuttype='B'):
-        super(ResNet3D50, self).__init__()
+    def __init__(self, blocktype=BottleneckBlock, layers=[3, 4, 6, 3], groups=32):
+        super(ResNet3D50Backbone, self).__init__()
         # set up initial (non-residual) convolution
         self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(1, 2, 2), padding=(3, 3, 3), bias=False)
         self.norm1 = nn.GroupNorm(groups, 64)
@@ -119,37 +117,27 @@ class ResNet3D50(nn.Module):
         self.pool1 = nn.MaxPool3d(kernel_size=(3, 3, 3), stride=2, padding=1)
         # set up residual blocks
         self.inplanes = 64
-        self.block1 = self._make_layer(blocktype, 64, layers[0], shortcuttype, groups=groups)
-        self.block2 = self._make_layer(blocktype, 128, layers[1], shortcuttype, groups=groups, stride=2)
-        self.block3 = self._make_layer(blocktype, 256, layers[2], shortcuttype, groups=groups, stride=2)
-        self.block4 = self._make_layer(blocktype, 512, layers[3], shortcuttype, groups=groups, stride=2)
-        self.avgpool = nn.AdaptiveAvgPool3d(1)
-        self.fc = nn.Linear(512 * blocktype.expansion, num_classes)
-        # initialize the layer weights
-        self.init_weights()
+        self.block1 = self._make_layer(blocktype, 64, layers[0], groups=groups)
+        self.block2 = self._make_layer(blocktype, 128, layers[1], groups=groups, stride=2)
+        self.block3 = self._make_layer(blocktype, 256, layers[2], groups=groups, stride=2)
+        self.block4 = self._make_layer(blocktype, 512, layers[3], groups=groups, stride=2)
         
 
-    def _make_layer(self, blocktype, planes, repetitions, shortcut_type, groups=32, stride=1):
-        downsample = None
-        # choose appropriate downsampling operatino
+    def _make_layer(self, blocktype, planes, repetitions, groups=32, stride=1):
+        # choose whether to downsample
         if stride != 1 or self.inplanes != planes * blocktype.expansion:
-            if shortcut_type == 'A':
-                downsample = partial(
-                    downsample_basic_block,
-                    planes=planes * blocktype.expansion,
+            downsample = nn.Sequential(
+                nn.Conv3d(
+                    self.inplanes,
+                    planes * blocktype.expansion,
+                    kernel_size=1,
                     stride=stride,
-                )
-            else:
-                downsample = nn.Sequential(
-                    nn.Conv3d(
-                        self.inplanes,
-                        planes * blocktype.expansion,
-                        kernel_size=1,
-                        stride=stride,
-                        bias=False,
-                    ),
-                    nn.GroupNorm(groups, planes * blocktype.expansion),
-                )
+                    bias=False,
+                ),
+                nn.GroupNorm(groups, planes * blocktype.expansion),
+            )
+        else:
+            downsample = None
         # repeat the desired block for the required number of times
         layers = []
         layers.append(blocktype(self.inplanes, planes, groups, stride, downsample))
@@ -175,8 +163,16 @@ class ResNet3D50(nn.Module):
         x = self.block2(x)
         x = self.block3(x)
         x = self.block4(x)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
         return x
-
+        
+    def features(self, x):
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.relu(x)
+        x = self.pool1(x)
+        b1 = self.block1(x)
+        b2 = self.block2(x)
+        b3 = self.block3(x)
+        b4 = self.block4(x)
+        return([x, b1, b2, b3, b4])
+        
