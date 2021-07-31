@@ -114,12 +114,12 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
         'Lists of datasets, decodes, losses, and devices have to have equal length.'
     # set up distributed processing and DDP model
     setup(rank, world_size)
+    dev = devices[rank]
     model = make_backbone().to(dev)
     ddp_model = DDP(model, device_ids=[rank])
     decoder = decoders[rank].to(dev)
     complete_model = nn.Sequential(ddp_model, decoder)
     traindata, valdata = datasets[rank]
-    dev = devices[rank]
     
     # print some debug information
     if debug:
@@ -175,7 +175,7 @@ def demo_2losses():
     # adjusted from PyTorch tutorial
     mp.spawn(multidata_train,
              args=(2, ToyModel, [(data1, data1), (data2, data2)], [decoder1, decoder2],
-                   [loss1, loss2], [metric1, metric2], [dev1, dev2], 1, True),
+                   [loss1, loss2], [metric1, metric2], [dev1, dev2], log_fn, 1, True),
              nprocs=2,
              join=True)
 
