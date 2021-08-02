@@ -1,0 +1,13 @@
+decord
+moviepy
+nibabel
+nilearn
+numpy
+opencv-python-headless
+Pillow
+requests
+scikit-learn
+setuptools
+torch
+torchvision
+tqdm
