@@ -1,3 +1,6 @@
+import os
+import torch
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
     def __init__(self):
@@ -15,6 +18,40 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
+
+class Logger(object):
+    '''
+    Logs the training loss and performs checkpointing for multiGPU training.
+    
+    Args:
+        *ckptpath (str or path): base path at which to save checkpoints
+        *logpath (str or path): base path at which to save log files
+        *logevery (int): logging interval (in number of batches)
+    '''
+    def __init__(self, ckptpath, logpath, logevery=1000):
+        self.losscurve = []
+        self.metriccurve = []
+        self.ckptpath = ckptpath
+        self.logpath = logpath
+        self.logevery = logevery
+        self.lastlog = 0
+        if not(os.path.exists(os.path.dirname(self.ckptpath))):
+            os.makedirs(os.path.dirname(self.ckptpath))
+        if not(os.path.exists(os.path.dirname(self.logpath))):
+            os.makedirs(os.path.dirname(self.logpath))
+        pass
+        
+    def log(self, epoch, batch, loss, metric, model_dict, decoder_dict, rank):
+        self.losscurve.append((epoch, batch, loss))
+        self.metriccurve.append((epoch, batch, metric))
+        # if the current epoch is a multiple of the 'logevery' interval, write checkpoints and logs to file
+        if batch - self.lastlog >= self.logevery:
+            torch.save({'loss': self.losscurve, 'metric': self.metriccurve}, self.logpath + f'rank{rank}.log')
+            torch.save(decoder_dict, self.ckptpath + f'decoder_{rank}.ckpt')
+            torch.save(model_dict, self.ckptpath + f'model_{rank}.ckpt')    
+            self.lastlog = batch
+            
+        
 
 def accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
