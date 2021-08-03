@@ -59,8 +59,7 @@ def cleanup():
     dist.destroy_process_group()
     
 
-def trainstep(data, model, loss_fn, opt, dev):
-    x, y = data
+def trainstep(x, y, model, loss_fn, opt, dev):
     x = x.to(dev)
     y = y.to(dev)
     pred = model(x)
@@ -126,18 +125,18 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
     # print some debug information
     if debug:
         print(f'Start on process {rank}: {datetime.datetime.now()}')
-        print(f'Running multidata_train on process {rank}, device {dev}')
+        print(f'Running multidata_train on process {rank}, device {dev}', flush=True)
     
     loss_fn = losses[rank]
     eval_fn = metrics[rank]
     optimizer = optim.SGD(complete_model.parameters(), lr=0.001)
     
     # determine number of epochs according to number of batches
-    epochs = ceil(len(traindata) / batches)
+    epochs = ceil(batches / len(traindata))
     # set up logging infrastructure for training loop
     batchcounter = 0
     avgloss = AverageMeter()
-    logger = Loggers[rank]
+    logger = loggers[rank]
     
     # run training loop
     for e in range(epochs):
@@ -151,12 +150,14 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
                 avgm = valloop(valdata, complete_model, eval_fn, dev)
                 logger.log(e, batchcounter, avgloss.avg, avgm, model.state_dict(), decoder.state_dict(), rank)
                 if debug:
-                    print(f'Process {rank}, epoch {e}, batch {i}|{batchcounter}: loss {avgloss.avg}')
+                    print(f'Process {rank}, epoch {e}, batch {i+1}|{batchcounter}: loss {avgloss.avg} at time {datetime.datetime.now()}', flush=True)
                 avgloss.reset()
+            if batchcounter >= batches:
+                break
     
     if debug:
-        print(f'Final network parameters on process {rank}: {list(model.parameters())}')
-        print(f'Final decoder parameters on process {rank}: {list(decoder.parameters())}')
-        print(f'End on process {rank}: {datetime.datetime.now()}')
+        #print(f'Final network parameters on process {rank}: {list(model.parameters())}')
+        #print(f'Final decoder parameters on process {rank}: {list(decoder.parameters())}')
+        print(f'End on process {rank}: {datetime.datetime.now()}', flush=True)
     cleanup()
 

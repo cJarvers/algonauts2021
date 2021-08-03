@@ -8,7 +8,6 @@
 #   also evaluate accuracy or something similar on validation data.
 # - Currently, the datasets used are hardcoded. It may be nicer to set flags
 #   via the commandline to activate / deactivate certain datasets.
-# - Logging / checkpointing functionality not implemented yet.
 
 # standard Python imports
 import argparse
@@ -31,8 +30,8 @@ parser.add_argument('--bsize', type=int, default=32, help='Batch size')
 parser.add_argument('-d', '--devices', type=str, nargs='*', default=['cuda:0', 'cuda:1'], help='Names of devices to train on.')
 parser.add_argument('-n', '--nprocs', type=int, default=2, help='Number of processes to launch.')
 parser.add_argument('-b', '--batches', type=int, default=1000, help='Number of batches to train.')
-parser.add_argument('--logpath', type=str, default='logs/', help='Path to save log files to.')
-parser.add_argument('--ckptpath', type=str, default='logs/', help='Path to save checkpoints to.')
+parser.add_argument('--logpath', type=str, default='/mnt/logs/', help='Path to save log files to.')
+parser.add_argument('--ckptpath', type=str, default='/mnt/logs/', help='Path to save checkpoints to.')
 parser.add_argument('--loginterval', type=int, default=1000, help='Number of batches after which to perform validation and log losses & metrics.')
 parser.add_argument('--ckptinterval', type=int, default=1000, help='Number of batches after which to save logs and checkpoints (should be a multiple of loginterval).')
 
@@ -52,9 +51,9 @@ if __name__ == '__main__':
     
     # load datasets
     transform = Compose([ConvertImageDtype(torch.float32), Resize((224, 224))])
-    moments = MomentsDataset('data/Moments_in_Time_Raw', 'training', 16, transform=transform)
+    moments = MomentsDataset('/mnt/data/Moments_in_Time_Raw', 'training', 16, transform=transform)
     moments_loader = DataLoader(moments, batch_size=args.bsize, shuffle=True)
-    objectron = ObjectronDataset('data/objectron', 16, transform=transform)
+    objectron = ObjectronDataset('/mnt/data/objectron', 16, transform=transform)
     objectron_loader = DataLoader(objectron, batch_size=args.bsize, shuffle=True)
     datasets = [(moments_loader, []), (objectron_loader, [])]
     
@@ -64,12 +63,12 @@ if __name__ == '__main__':
     objectron_loss = torch.nn.CrossEntropyLoss().cuda()
     losses = [moments_loss, objectron_loss]
     metrics = [(), ()]
-    loggers = [Logger(args.logpath, args.ckptpath, logevery=args.ckptinterval)]
+    loggers = [Logger(args.logpath, args.ckptpath, logevery=args.ckptinterval)] * len(datasets)
     
     # launch training
     n = args.nprocs
     assert n == len(datasets), 'Number of training processes does not match number of datasets.'
     mp.spawn(multidata_train,
-         args=(n, backbone, datasets, decoders, losses, metrics, devices, loggers, args.batches, loginterval=args.loginterval, debug=True),
+         args=(n, backbone, datasets, decoders, losses, metrics, devices, loggers, args.batches, args.loginterval, True),
          nprocs=n,
          join=True)
