@@ -23,13 +23,18 @@ from data.objectron_loader import ObjectronDataset
 from models.decoders import ClassDecoder
 from models.resnet3d50 import ResNet3D50Backbone
 from utils.training import multidata_train
+from utils.utils import Logger
 
 # set up command line parsing
 parser = argparse.ArgumentParser(description='Perform training of 3D-ResNet50 model on multiple datasets.')
 parser.add_argument('--bsize', type=int, default=32, help='Batch size')
 parser.add_argument('-d', '--devices', type=str, nargs='*', default=['cuda:0', 'cuda:1'], help='Names of devices to train on.')
 parser.add_argument('-n', '--nprocs', type=int, default=2, help='Number of processes to launch.')
-parser.add_argument('-e', '--epochs', type=int, default=1, help='Number of epochs to train.')
+parser.add_argument('-b', '--batches', type=int, default=1000, help='Number of batches to train.')
+parser.add_argument('--logpath', type=str, default='logs/', help='Path to save log files to.')
+parser.add_argument('--ckptpath', type=str, default='logs/', help='Path to save checkpoints to.')
+parser.add_argument('--loginterval', type=int, default=1000, help='Number of batches after which to perform validation and log losses & metrics.')
+parser.add_argument('--ckptinterval', type=int, default=1000, help='Number of batches after which to save logs and checkpoints (should be a multiple of loginterval).')
 
 def log_fn(epoch, loss, metric, model_dict, decoder_dict, rank):
     None
@@ -59,11 +64,12 @@ if __name__ == '__main__':
     objectron_loss = torch.nn.CrossEntropyLoss().cuda()
     losses = [moments_loss, objectron_loss]
     metrics = [(), ()]
+    loggers = [Logger(args.logpath, args.ckptpath, logevery=args.ckptinterval)]
     
     # launch training
     n = args.nprocs
     assert n == len(datasets), 'Number of training processes does not match number of datasets.'
     mp.spawn(multidata_train,
-         args=(n, backbone, datasets, decoders, losses, metrics, devices, log_fn, args.epochs, True),
+         args=(n, backbone, datasets, decoders, losses, metrics, devices, loggers, args.batches, loginterval=args.loginterval, debug=True),
          nprocs=n,
          join=True)

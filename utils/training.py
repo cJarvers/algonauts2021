@@ -29,18 +29,22 @@
 #         OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #         OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # The bits that have been reused are marked.
+
+# Standard Python imports
 import datetime
+from math import ceil
 import os
 import sys
 import tempfile
+# PyTorch-related imports
 import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
 import torch.multiprocessing as mp
-from utils.utils import AverageMeter
-
 from torch.nn.parallel import DistributedDataParallel as DDP
+# custom import from our code
+from utils.utils import AverageMeter
 
 # taken from PyTorch tutorial
 def setup(rank, world_size):
@@ -55,21 +59,16 @@ def cleanup():
     dist.destroy_process_group()
     
 
-def trainloop(data, model, loss_fn, opt, dev):
-    avgloss = AverageMeter()
-    model.train()
-    for (x, y)  in data:
-        # train on the batch
-        x = x.to(dev)
-        y = y.to(dev)
-        pred = model(x)
-        loss = loss_fn(pred, y)
-        opt.zero_grad()
-        loss.backward()
-        opt.step()
-        # log the loss
-        avgloss.update(loss.item())
-    return avgloss.avg
+def trainstep(data, model, loss_fn, opt, dev):
+    x, y = data
+    x = x.to(dev)
+    y = y.to(dev)
+    pred = model(x)
+    loss = loss_fn(pred, y)
+    opt.zero_grad()
+    loss.backward()
+    opt.step()
+    return loss.item()
 
 def valloop(data, model, metric, dev):
     avgmetric = AverageMeter()
@@ -81,11 +80,12 @@ def valloop(data, model, metric, dev):
             pred = model(x)
             m = metric(pred, y)
             avgmetric.update(loss.item())
+    model.train()
     return avgmetric.avg
         
 
 def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses, metrics,
-        devices, log_fn, epochs=50, debug=False):
+        devices, loggers, batches=1000, loginterval=100, debug=False):
     '''
     Trains the common network `backbone` on several datasets simultaneously.
     
@@ -99,9 +99,11 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
         *losses: Loss functions to use for training the network(s).
         *metrics: Functions to evaluate the network with on validation data.
         *devices: The compute devices on which the networks should be trained.
-        *log_fn: Function that receives the epoch number, average loss and metric,
-                 model and decoder state_dicts, and process rank. Can be used for logging.
-        *epochs (int): Number of epochs to train
+        *loggers: List of loggers (one per process). Should have a method .log that receives
+                  the epoch number, batch number, average loss and metric,
+                  model and decoder state_dicts, and process rank.
+        *batches (int): Number of batches to train
+        *loginterval (int): Number of batches after which to log loss and validation metric.
         *debug (bool): If True, prints some debug information
         
     The lists `datasets`, `decoders`, `losses`, and `devices` have to be of the same length.
@@ -130,52 +132,31 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
     eval_fn = metrics[rank]
     optimizer = optim.SGD(complete_model.parameters(), lr=0.001)
     
+    # determine number of epochs according to number of batches
+    epochs = ceil(len(traindata) / batches)
+    # set up logging infrastructure for training loop
+    batchcounter = 0
+    avgloss = AverageMeter()
+    logger = Loggers[rank]
+    
     # run training loop
     for e in range(epochs):
-        avgloss = trainloop(traindata, complete_model, loss_fn, optimizer, dev)
-        avgm = valloop(valdata, complete_model, eval_fn, dev)
-        log_fn(e, avgloss, avgm, model.state_dict(), decoder.state_dict(), rank)
-        
+        # train until interval for logging or checkpointing
+        model.train()
+        for i, (x, y) in enumerate(traindata):
+            loss = trainstep(x, y, complete_model, loss_fn, optimizer, dev)
+            avgloss.update(loss)
+            batchcounter += 1
+            if batchcounter % loginterval == 0:
+                avgm = valloop(valdata, complete_model, eval_fn, dev)
+                logger.log(e, batchcounter, avgloss.avg, avgm, model.state_dict(), decoder.state_dict(), rank)
+                if debug:
+                    print(f'Process {rank}, epoch {e}, batch {i}|{batchcounter}: loss {avgloss.avg}')
+                avgloss.reset()
     
     if debug:
         print(f'Final network parameters on process {rank}: {list(model.parameters())}')
         print(f'Final decoder parameters on process {rank}: {list(decoder.parameters())}')
         print(f'End on process {rank}: {datetime.datetime.now()}')
     cleanup()
-    
-    
-# taken from PyTorch tutorial
-class ToyModel(nn.Module):
-    def __init__(self):
-        super(ToyModel, self).__init__()
-        self.net1 = nn.Linear(10, 10)
-        self.relu = nn.ReLU()
-        self.net2 = nn.Linear(10, 5)
-
-    def forward(self, x):
-        return self.net2(self.relu(self.net1(x)))
-
-
-def demo_2losses():
-    decoder1 = nn.Linear(5, 2)
-    decoder2 = nn.Linear(5, 3)
-    xs1 = [torch.rand(1, 10), torch.rand(5, 10), torch.rand(3, 10)]
-    xs2 = [torch.rand(2, 10), torch.rand(2, 10), torch.rand(2, 10)]
-    ys1 = [torch.rand(1, 2), torch.rand(5, 2), torch.rand(3, 2)]
-    ys2 = [torch.randint(3, (2,))] * 3
-    data1 = zip(xs1, ys1)
-    data2 = zip(xs2, ys2)
-    loss1 = torch.nn.MSELoss()
-    loss2 = torch.nn.CrossEntropyLoss()
-    metric1 = torch.nn.MSELoss()
-    metric2 = lambda pred, y: 0.0
-    dev1 = torch.device('cuda:0')
-    dev2 = torch.device('cuda:1')
-    log_fn = lambda e, l, m, d1, d2, rank: print(f'Rank {rank}, epoch {e}: loss is {l},\t metric is {m}')
-    # adjusted from PyTorch tutorial
-    mp.spawn(multidata_train,
-             args=(2, ToyModel, [(data1, data1), (data2, data2)], [decoder1, decoder2],
-                   [loss1, loss2], [metric1, metric2], [dev1, dev2], log_fn, 1, True),
-             nprocs=2,
-             join=True)
 
