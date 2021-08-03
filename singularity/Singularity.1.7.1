@@ -22,6 +22,17 @@ From: nvidia/cuda:11.0.3-cudnn8-devel-ubuntu20.04
 	python3-pip \
 	python3-setuptools
 
+	# Installation of pyAV dependencies
+	DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+	pkg-config \
+	libavformat-dev \
+	libavcodec-dev \
+	libavdevice-dev \
+    libavutil-dev \
+	libswscale-dev \
+	libswresample-dev \
+	libavfilter-dev
+
 	# Remove temporary stuff to reduce image size
 	rm -rf /var/lib/apt/lists/*
 
