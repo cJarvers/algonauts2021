@@ -27,7 +27,7 @@ cp -R ${CODE_DIRECTORY}/* ${JOB_DIR}
 
 # Switch to the job directory an execute the script
 cd ${JOB_DIR}
-singularity exec --nv --bind $(pwd):/mnt --bind ${ALGONAUTS_WS}/data/objectron:/mnt/data/objectron --bind ${ALGONAUTS_WS}/data/Moments_in_Time_Raw:/mnt/data/Moments_in_Time_Raw ${SINGULARITY_CONTAINER} python3 /mnt/train_model.py --b 100 --loginterval 10 --ckptinterval 10
+singularity exec --nv --bind $(pwd):/mnt --bind ${ALGONAUTS_WS}/data/objectron:/mnt/data/objectron --bind ${ALGONAUTS_WS}/data/Moments_in_Time_Raw:/mnt/data/Moments_in_Time_Raw ${SINGULARITY_CONTAINER} python3 /mnt/train_model.py -b 100 --loginterval 10 --ckptinterval 10
 
 # Print metadata at the end
 date
