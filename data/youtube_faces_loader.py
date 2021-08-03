@@ -33,7 +33,6 @@ class YouTubeFacesFrameImagesDB():
         self.split = split
         # how many frames to get from a video
         self.nsamples = nsamples
-        # TODO: set initial rng state
         self._init_rng(rng_state)
         # setup of metadata
         self._init_dataset_meta_info(root_dir)
