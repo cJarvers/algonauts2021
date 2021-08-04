@@ -171,8 +171,8 @@ class ResNet3D50Backbone(nn.Module):
         x = self.relu(x)
         x = self.pool1(x)
         b1 = self.block1(x)
-        b2 = self.block2(x)
-        b3 = self.block3(x)
-        b4 = self.block4(x)
+        b2 = self.block2(b1)
+        b3 = self.block3(b2)
+        b4 = self.block4(b3)
         return([x, b1, b2, b3, b4])
         
