@@ -105,7 +105,9 @@ def get_activations_and_save(model, video_list, activations_dir, sampling_rate =
         video_file_name = os.path.split(video_file)[-1].split(".")[0]
         vid = resize_normalize(vid).unsqueeze(0)
         activations = []
-        x = model.features(vid.cuda())
+        if torch.cuda.is_available()
+            vid = vid.cuda()
+        x = model.features(vid)
         for i, feat in enumerate(x):
             activations.append(feat.data.cpu().numpy())
         for layer in range(len(activations)):
