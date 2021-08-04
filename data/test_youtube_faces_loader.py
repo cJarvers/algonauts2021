@@ -2,7 +2,11 @@
 
 print("Starting testing of YouTubeFaces dataloader")
 
-import youtube_faces_loader as ytf
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+
+import data.youtube_faces_loader as ytf
 import torch
 from torch.utils.data import DataLoader
 from torchvision.transforms import ConvertImageDtype, Resize, Compose

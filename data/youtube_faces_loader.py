@@ -1,25 +1,21 @@
 '''
 Wrapper / loader for YouTubeFaces dataset.
 '''
-print("Importing stuff")
 import os
 import math
 import numpy as np
 import random
 from pathlib import Path
-print("Importing stuff")
 import torch
 from torch.utils.data import IterableDataset, DataLoader
 import torchvision
-print("Importing stuff")
-from utils import subsample_ids
-print("Imported stuff")
+from data.utils import subsample_ids
 
 class YouTubeFacesFrameImagesDB():
     '''
     Underlying implementation for the `frame_images_DB` part of the
     YouTubeFaces dataset.
-    
+
     Args:
         *root_dir (str): Directory from which to load data. Should contain a
                          folder `frame_images_DB` 
@@ -95,7 +91,7 @@ class YouTubeFacesFrameImagesDB():
         '''
         Parses lists of all persons of the dataset that make for valid samples,
         i.e. at least one video and the label file exist.
-        
+
         Args:
             *root_dir: root directory of the dataset, which contains the data
         '''
@@ -131,14 +127,14 @@ class YouTubeFacesFrameImagesDB():
         else:
             raise(ValueError("Encountered unknown split type, got: {}".format(self.split)))
 
-    def _get_random_video(self, sample_dir):  
+    def _get_random_video(self, sample_dir):
         '''
         Returns a properly subsampled video stemming from a random subdirectory
         given the `sample_dir`.
 
         Args:
             *sample_dir: path of parent directory where videos are residing
-        '''      
+        '''
         video_dirs = YouTubeFacesFrameImagesDB._get_subdirs(sample_dir)
         # choose from the available videos
         video_dir = np.random.choice(video_dirs)
@@ -153,7 +149,7 @@ class YouTubeFacesFrameImagesDB():
         '''
         Returns a random, properly subsampled video belonging to the person as
         indicated by the `sample_idx`.
-        
+
         Args:
             *sample_idx (int): index indicating a person in the dataset
         '''
@@ -168,7 +164,7 @@ class YouTubeFacesDataset(IterableDataset):
     '''
     Wrapper for the YouTubeFaces. Should only be used with batch sizes that are
     multiples of `_max_sample_multiplicity`.
-    
+
     Args:
         *root_dir (str): Directory from which to load data. Should contain a
                          folder `frame_images_DB` 
@@ -203,6 +199,11 @@ class YouTubeFacesDataset(IterableDataset):
         samples from one and the same person (while potentially being
         different videos).
         '''
+        # Only iterate further if not all samples have been retrieved
+        if self._iter_idx >= len(self.samples_to_process):
+            self._iter_idx = 0
+            raise(StopIteration())
+
         vid, label = self.dataset.get_sample(self.samples_to_process[self._iter_idx])
         if self.transform:
             vid = self.transform(vid)
@@ -211,9 +212,6 @@ class YouTubeFacesDataset(IterableDataset):
         if self._sample_multiplicity >= self._max_sample_multiplicity:
             self._sample_multiplicity = 0
             self._iter_idx += 1
-            if self._iter_idx >= len(self.samples_to_process):
-                self._iter_idx = 0
-                raise(StopIteration())
         return (vid, label)
 
     def __iter__(self):
