@@ -39,21 +39,6 @@ class NT_Xent(nn.Module):
 
         # We have N samples
         mask = NT_Xent.mask_correlated_samples(y)
-
-        print("Similarities:")
-        print(sim)
-        print(sim.shape)
-        print("Classes:")
-        print(y)
-        print(y.shape)
-        print("Mask (keep negative samples):")
-        print(mask)
-        print(mask.shape)
-        print("Mask (keep positive samples):")
-        print(~mask)
-        print((~mask).shape)
-        print(sim[~mask].shape)
-
         positive_samples = sim[~mask].reshape(N, -1)
         negative_samples = sim[mask].reshape(N, -1)
 

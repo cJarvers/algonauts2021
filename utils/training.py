@@ -57,7 +57,7 @@ def setup(rank, world_size):
 # taken from PyTorch tutorial
 def cleanup():
     dist.destroy_process_group()
-    
+
 
 def trainstep(x, y, model, loss_fn, opt, dev):
     x = x.to(dev)
@@ -81,13 +81,13 @@ def valloop(data, model, metric, dev):
             avgmetric.update(loss.item())
     model.train()
     return avgmetric.avg
-        
+
 
 def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses, metrics,
         devices, loggers, batches=1000, loginterval=100, debug=False):
     '''
     Trains the common network `backbone` on several datasets simultaneously.
-    
+
     Args:
         *rank (int): Process number that the current copy of the function is run on.
         *world_size (int): Number of processes on which the function is run in parallel.
@@ -104,7 +104,7 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
         *batches (int): Number of batches to train
         *loginterval (int): Number of batches after which to log loss and validation metric.
         *debug (bool): If True, prints some debug information
-        
+
     The lists `datasets`, `decoders`, `losses`, and `devices` have to be of the same length.
     Essentially, device i will get a batch from dataset i, put it through the backbone,
     put the output of that through decoder i, calculate loss `i` and perform backprop.
@@ -121,23 +121,23 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
     decoder = decoders[rank].to(dev)
     complete_model = nn.Sequential(ddp_model, decoder)
     traindata, valdata = datasets[rank]
-    
+
     # print some debug information
     if debug:
         print(f'Start on process {rank}: {datetime.datetime.now()}')
         print(f'Running multidata_train on process {rank}, device {dev}', flush=True)
-    
+
     loss_fn = losses[rank]
     eval_fn = metrics[rank]
     optimizer = optim.SGD(complete_model.parameters(), lr=0.001)
-    
+
     # determine number of epochs according to number of batches
     epochs = ceil(batches / len(traindata))
     # set up logging infrastructure for training loop
     batchcounter = 0
     avgloss = AverageMeter()
     logger = loggers[rank]
-    
+
     # run training loop
     for e in range(epochs):
         # train until interval for logging or checkpointing
@@ -154,7 +154,7 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
                 avgloss.reset()
             if batchcounter >= batches:
                 break
-    
+
     if debug:
         #print(f'Final network parameters on process {rank}: {list(model.parameters())}')
         #print(f'Final decoder parameters on process {rank}: {list(decoder.parameters())}')
