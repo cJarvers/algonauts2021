@@ -9,6 +9,7 @@ from pathlib import Path
 import torch
 from torch.utils.data import IterableDataset, DataLoader
 import torchvision
+from PIL import Image
 from data.utils import subsample_ids
 
 class YouTubeFacesFrameImagesDB():
@@ -61,6 +62,11 @@ class YouTubeFacesFrameImagesDB():
                valid_person_dirs.append(person_dir)
         return valid_person_dirs
 
+    @classmethod
+    def _read_image(cls, path_to_img):
+        # yields Tensor[H, W, C]
+        return torch.from_numpy(np.array(Image.open(str(path_to_img))))
+
 
     @classmethod
     def _frames_to_video(cls, frame_paths):
@@ -70,16 +76,13 @@ class YouTubeFacesFrameImagesDB():
         Args:
             *frame_paths: List of paths to single frames/images
         '''
-        frames = []
-        for frame_path in frame_paths:
-            # yields Tensor[C, H, W]
-            frames.append(torchvision.io.read_image(str(frame_path)))
-        # put frames together
-        # yields Tensor[T, C, H, W])
-        vid = torch.stack(frames)
-        # Rearrange as per our other datasets
+        frame_0 = YouTubeFacesFrameImagesDB._read_image(frame_paths[0])
+        vid = torch.zeros((len(frame_paths),*frame_0.shape),dtype=frame_0.dtype) # Tensor [T, H, W, C]
+        vid[0,:,:,:] = frame_0
+        for (frame_idx, frame_path) in enumerate(frame_paths[1:]):
+            vid[frame_idx,:,:,:] = YouTubeFacesFrameImagesDB._read_image(frame_path)
         # yields Tensor[C, T, H, W]
-        vid = vid.movedim(1, 0)
+        vid = vid.movedim(3, 0)
         return vid
 
     def _init_rng(self, rng_state):
@@ -219,6 +222,9 @@ class YouTubeFacesDataset(IterableDataset):
 
     def __next__(self):
        return self._get_paired_sample()
+
+    def __len__(self):
+       return len(self.dataset.get_ids())
 
     @classmethod
     def worker_init_fn(cls, worker_id):
