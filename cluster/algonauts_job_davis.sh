@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --mail-type=BEGIN,END,FAIL              		# Mail events (NONE, BEGIN, END, FAIL, REQUEUE, ALL)
 #SBATCH --partition=dev_gpu_4			                # Define on what queue to place
-#SBATCH --gres=gpu:3						# Query two GPUs on the node
-#SBATCH --mem=64000mb						# Necessary RAM
+#SBATCH --gres=gpu:2						# Query two GPUs on the node
+#SBATCH --mem=10000mb						# Necessary RAM
 #SBATCH --time=00:30:00                         		# Time limit hrs:min:sec
 
 # Print metadata at the beginning
@@ -27,7 +27,7 @@ cp -R ${CODE_DIRECTORY}/* ${JOB_DIR}
 
 # Switch to the job directory an execute the script
 cd ${JOB_DIR}
-singularity exec --nv --bind $(pwd):/mnt --bind ${ALGONAUTS_WS}/data/YouTubeFaces:/mnt/data/YouTubeFaces --bind ${ALGONAUTS_WS}/data/objectron:/mnt/data/objectron --bind ${ALGONAUTS_WS}/data/Moments_in_Time_Raw:/mnt/data/Moments_in_Time_Raw ${SINGULARITY_CONTAINER} python3 /mnt/train_model.py -b 1000 --loginterval 10 --ckptinterval 10
+singularity exec --nv --bind $(pwd):/mnt --bind ${ALGONAUTS_WS}/data:/data ${SINGULARITY_CONTAINER} python3 /mnt/data/test_davis_loader.py
 
 # Print metadata at the end
 date

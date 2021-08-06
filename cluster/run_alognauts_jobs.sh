@@ -4,6 +4,9 @@ DEFAULT_E_MAIL=""
 SINGULARITY_CONTAINER=${ALGONAUTS_WS}/singularity/"torchenvuc2.sif"
 #JOB_SCRIPT=${CODE_DIRECTORY}/cluster/"algonauts_job_example.sh"
 JOB_SCRIPT=${CODE_DIRECTORY}/cluster/"algonauts_job_multigpu.sh"
+#JOB_SCRIPT=${CODE_DIRECTORY}/cluster/"algonauts_job_loss.sh"
+#JOB_SCRIPT=${CODE_DIRECTORY}/cluster/"algonauts_job_youtubefaces.sh"
+#JOB_SCRIPT=${CODE_DIRECTORY}/cluster/"algonauts_job_davis.sh"
 DEVELOPER=$(whoami)
 
 # Setup of jobs directory
@@ -26,15 +29,15 @@ if [[ -z "${ALGONAUTS_WS}" ]]; then
 fi
 
 
-for seed in {1..2}
+for seed in {1..1}
 do
    RNG_SEED=$seed
    SCRIPT_BASE_NAME="${JOB_SCRIPT}"
    SCRIPT_BASE_NAME=${SCRIPT_BASE_NAME%.sh}
    SCRIPT_BASE_NAME=${SCRIPT_BASE_NAME##*/}
    JOB_NAME=${SCRIPT_BASE_NAME}_${DEVELOPER}_seed_${RNG_SEED}
-   OUTPUT_LOG=${JOBS_DIR}/$(date +%y%m%d_%k%M%S)_${JOB_NAME}.log
-   ERROR_LOG=${JOBS_DIR}/$(date +%y%m%d_%k%M%S)_${JOB_NAME}_errors.log
+   OUTPUT_LOG=${JOBS_DIR}/$(date +%y%m%d_%H%M%S)_${JOB_NAME}.log
+   ERROR_LOG=${JOBS_DIR}/$(date +%y%m%d_%H%M%S)_${JOB_NAME}_errors.log
 
    sbatch --export=ALL,RNG_SEED=${RNG_SEED},CODE_DIRECTORY=${CODE_DIRECTORY},ALGONAUTS_WS=${ALGONAUTS_WS},SINGULARITY_CONTAINER=${SINGULARITY_CONTAINER},JOBS_DIR=${JOBS_DIR} --job-name=${JOB_NAME} --mail-user=${E_MAIL} --output=${OUTPUT_LOG} --error=${ERROR_LOG} ${JOB_SCRIPT}
 done
