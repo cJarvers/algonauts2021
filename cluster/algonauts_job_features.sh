@@ -2,7 +2,7 @@
 #SBATCH --mail-type=BEGIN,END,FAIL              		# Mail events (NONE, BEGIN, END, FAIL, REQUEUE, ALL)
 #SBATCH --partition=single			                # Define on what queue to place
 #SBATCH --mem=32000mb						# Necessary RAM
-#SBATCH --time=00:30:00                         		# Time limit hrs:min:sec
+#SBATCH --time=02:00:00                         		# Time limit hrs:min:sec
 
 # Print metadata at the beginning
 pwd; hostname; date
@@ -26,7 +26,7 @@ cp -R ${CODE_DIRECTORY}/* ${JOB_DIR}
 
 # Switch to the job directory an execute the script
 cd ${JOB_DIR}
-singularity exec --nv --bind $(pwd):/mnt --bind ${ALGONAUTS_WS}/checkpoints:/checkpoints --bind ${ALGONAUTS_WS}/data/AlgonautsVideos268_All_30fpsmax:/videos ${SINGULARITY_CONTAINER} python3 /mnt/feature_extraction/generate_features_resnet.py -vdir /videos -sdir /mnt/features
+singularity exec --nv --bind $(pwd):/mnt --bind ${ALGONAUTS_WS}/checkpoints:/checkpoints --bind ${ALGONAUTS_WS}/data/AlgonautsVideos268_All_30fpsmax:/videos --bind ${ALGONAUTS_WS}/data/participants_data_v2021:/fmri --pwd /mnt ${SINGULARITY_CONTAINER} ./cluster/algonauts_submission.sh
 
 # Print metadata at the end
 date
