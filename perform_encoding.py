@@ -6,7 +6,7 @@ import random
 import argparse
 import itertools
 import nibabel as nib
-from nilearn import plotting
+#from nilearn import plotting
 from tqdm import tqdm
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.linear_model import LinearRegression
@@ -116,7 +116,7 @@ def predict_fmri_fast(train_activations, test_activations, train_fmri,use_gpu=Fa
 
 def main():
 
-    parser = argparse.ArgumentParser(description='Encoding model analysis for Algonauts 2021')
+    parseXr = argparse.ArgumentParser(description='Encoding model analysis for Algonauts 2021')
     parser.add_argument('-rd','--result_dir', help='saves predicted fMRI activity',default = './results', type=str)
     parser.add_argument('-ad','--activation_dir',help='directory containing DNN activations',default = './alexnet/', type=str)
     parser.add_argument('-model','--model',help='model name under which predicted fMRI activity will be saved', default = 'alexnet_devkit', type=str)
@@ -135,7 +135,7 @@ def main():
     ROI = args['roi']
     model = args['model']
     layer = args['layer']
-    visualize_results = args['visualize']
+    #visualize_results = args['visualize']
     batch_size = args['batch_size'] # number of voxel to fit at one time in case of memory constraints
 
     if torch.cuda.is_available():
@@ -193,18 +193,18 @@ def main():
         print("Mean correlation for ROI : ",ROI, "in ",sub, " is :", round(score.mean(), 3))
 
         # result visualization for whole brain (full_track)
-        if track == "full_track" and visualize_results:
-            visual_mask_3D = np.zeros((78,93,71))
-            visual_mask_3D[voxel_mask==1]= score
-            brain_mask = './example.nii'
-            nii_save_path =  os.path.join(results_dir, ROI + '_val.nii')
-            saveasnii(brain_mask,nii_save_path,visual_mask_3D)
-            view = plotting.view_img_on_surf(nii_save_path, threshold=None, surf_mesh='fsaverage',\
-                                            title = 'Correlation for sub' + sub, colorbar=False)
-            view_save_path = os.path.join(results_dir,ROI + '_val.html')
-            view.save_as_html(view_save_path)
-            print("Results saved in this directory: ", results_dir)
-            view.open_in_browser()
+        #if track == "full_track" and visualize_results:
+        #    visual_mask_3D = np.zeros((78,93,71))
+        #    visual_mask_3D[voxel_mask==1]= score
+        #    brain_mask = './example.nii'
+        #    nii_save_path =  os.path.join(results_dir, ROI + '_val.nii')
+        #    saveasnii(brain_mask,nii_save_path,visual_mask_3D)
+        #    view = plotting.view_img_on_surf(nii_save_path, threshold=None, surf_mesh='fsaverage',\
+        #                                    title = 'Correlation for sub' + sub, colorbar=False)
+        #    view_save_path = os.path.join(results_dir,ROI + '_val.html')
+        #    view.save_as_html(view_save_path)
+        #    print("Results saved in this directory: ", results_dir)
+        #    view.open_in_browser()
 
 
     np.save(pred_fmri_save_path, pred_fmri)
