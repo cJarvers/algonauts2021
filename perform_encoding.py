@@ -116,7 +116,7 @@ def predict_fmri_fast(train_activations, test_activations, train_fmri,use_gpu=Fa
 
 def main():
 
-    parseXr = argparse.ArgumentParser(description='Encoding model analysis for Algonauts 2021')
+    parser = argparse.ArgumentParser(description='Encoding model analysis for Algonauts 2021')
     parser.add_argument('-rd','--result_dir', help='saves predicted fMRI activity',default = './results', type=str)
     parser.add_argument('-ad','--activation_dir',help='directory containing DNN activations',default = './alexnet/', type=str)
     parser.add_argument('-model','--model',help='model name under which predicted fMRI activity will be saved', default = 'alexnet_devkit', type=str)
