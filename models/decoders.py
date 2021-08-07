@@ -27,4 +27,133 @@ class ClassDecoder(nn.Module):
         x = self.fc(x)
         return x
         
+        
+class Deconv2DDecoder(nn.Module):
+    '''
+    Decoder for semantic segmentation and similar pixel-level tasks.
+    
+    Args:
+        *backbone (torch.nn.Module): encoder network
+        *inplanes (int): number of feature maps in output of backbone
+        *planes (list of int): number of feature maps to project to in each block
+        *outplanes (list of int): number of feature maps each block should return
+        *finallayer (torch.nn.Module): final layer
+    
+    Creates as many `Deconv2DBlock`s as there are `planes` and `outplanes`.
+    Each input x is first passed through the backbone, squeezed, and then passed
+    through each block in turn. Finally, `finallayer` is applied.
+    '''
+    def __init__(self, backbone, inplanes, planes, outplanes, finallayer):
+        super(DeconvDecoder, self).__init__()
+        self.backbone = backbone
+        self.blocks = []
+        for p, o in zip(planes, outplanes):
+            self.blocks.append(Deconv2DBlock(inplanes, p, o))
+            inplanes = o
+        self.finallayer = finallayer
+        
+    def forward(self, x):
+        x = self.backbone.forward(x).squeeze()
+        for b in self.blocks:
+            x = b(x)
+        x = self.finallayer(x)
+        return(x)
+
+      
+class UNet3DDecoder(nn.Module):
+    '''
+    Decoder for 3D semantic segmentation and similar pixel-level tasks.
+    
+    Args:
+        *backbone (torch.nn.Module): encoder network; should have a method called
+            `.features()` that returns intermediate feature maps
+        *inplanes (list of int): number of input feature maps to each block
+        *planes (list of int): number of feature maps to project to in each block
+        *outplanes (list of int): number of feature maps each block should return
+        *upsample (list of bool): for each block, indicates whether upsampling should occur
+        *finallayer (torch.nn.Module): final layer
+    
+    Creates as many `Deconv3DBlock`s as there are `planes` and `outplanes`.
+    Each input x is first passed through the backbone's .features method.
+    The last feature is passed trough the first deconv block and the result is
+    concatenated with the second-to-last feature. This is then passed through
+    the second block and so on. The final output is passed through the `finallayer`.
+    '''
+    def __init__(self, backbone, inplanes, planes, outplanes, upsample, finallayer):
+        super(UNet3DDecoder, self).__init__()
+        self.backbone = backbone
+        self.blocks = []
+        for i, p, o, u in zip(inplanes, planes, outplanes, upsample):
+            self.blocks.append(Deconv3DBlock(i, p, o, upsample=u))
+        self.finallayer = finallayer
+        
+    def forward(self, x):
+        features = self.backbone.features(x)
+        features.reverse()
+        x = self.blocks[0](features[0])
+        for b, f in zip(self.blocks[1:], features[1:]):
+            x = b(torch.cat([f, x], dim=1))
+        x = self.finallayer(x)
+        return(x)
+        
+class Deconv2DBlock(nn.Module):
+    '''
+    Combines 2D convolutions, groupnorm, and upsampling.
+    '''
+
+    def __init__(self, inplanes, planes, outplanes, groups=32):
+        super(Deconv2DBlock, self).__init__()
+        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
+        self.norm1 = nn.GroupNorm(groups, planes)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, bias=False, groups=groups, padding=1)
+        self.norm2 = nn.GroupNorm(groups, planes)
+        self.conv3 = nn.Conv2d(planes, outplanes, kernel_size=1, bias=False)
+        self.norm3 = nn.GroupNorm(groups, outplanes)
+        self.relu = nn.ReLU(inplace=True)
+        
+    def forward(self, x):
+        y = self.conv1(x)
+        y = self.norm1(y)
+        y = self.relu(y)
+        y = self.conv2(y)
+        y = self.norm2(y)
+        y = self.relu(y)
+        y = self.conv3(y)
+        y = self.norm3(y)
+        y = self.relu(y)
+        y = self.upsample(y)
+        return(y)
+
+
+class Deconv3DBlock(nn.Module):
+    '''
+    Combines 3D convolutions, groupnorm, and upsampling.
+    '''
+
+    def __init__(self, inplanes, planes, outplanes, groups=32, upsample=True):
+        super(Deconv3DBlock, self).__init__()
+        self.conv1 = nn.Conv3d(inplanes, planes, kernel_size=1, bias=False)
+        self.norm1 = nn.GroupNorm(groups, planes)
+        self.conv2 = nn.Conv3d(planes, planes, kernel_size=3, bias=False, groups=groups, padding=1)
+        self.norm2 = nn.GroupNorm(groups, planes)
+        self.conv3 = nn.Conv3d(planes, outplanes, kernel_size=1, bias=False)
+        self.norm3 = nn.GroupNorm(groups, outplanes)
+        self.relu = nn.ReLU(inplace=True)
+        if upsample:
+            self.upsample = nn.Upsample(scale_factor=2)
+        else:
+            self.upsample = lambda x: x
+        
+    def forward(self, x):
+        y = self.conv1(x)
+        y = self.norm1(y)
+        y = self.relu(y)
+        y = self.conv2(y)
+        y = self.norm2(y)
+        y = self.relu(y)
+        y = self.conv3(y)
+        y = self.norm3(y)
+        y = self.relu(y)
+        y = self.upsample(y)
+        return(y)
 
