@@ -55,16 +55,16 @@ if __name__ == '__main__':
 
     # load datasets
     transform = Compose([ConvertImageDtype(torch.float32), Resize((224, 224))])
-    moments = MomentsDataset('/mnt/data/Moments_in_Time_Raw', 'training', 16, transform=transform)
+    moments = MomentsDataset('/data/Moments_in_Time_Raw', 'training', 16, transform=transform)
     moments_loader = DataLoader(moments, batch_size=args.bsize, shuffle=True, num_workers=5)
-    objectron = ObjectronDataset('/mnt/data/objectron', 16, transform=transform)
+    objectron = ObjectronDataset('/data/objectron', 16, transform=transform)
     objectron_loader = DataLoader(objectron, batch_size=args.bsize, shuffle=True, num_workers=5)
-    yt_faces = YouTubeFacesDataset('/mnt/data/YouTubeFaces', 'training', 16, transform=transform)
+    yt_faces = YouTubeFacesDataset('/data/YouTubeFaces', 'training', 16, transform=transform)
     # shuffling for yt_faces happens within the dataset implementation
     # as it's an iterable dataset
     yt_faces_loader = DataLoader(yt_faces, batch_size=args.bsize, shuffle=False, drop_last=True,
                                  worker_init_fn=YouTubeFacesDataset.worker_init_fn, num_workers=5)
-    davis = DAVISDataset('/mnt/data/DAVIS', 'training', 16, transform, lambda x: x)
+    davis = DAVISDataset('/data/DAVIS', 'training', 16, transform, lambda x: x)
     davis_loader = DataLoader(davis, batch_size=4, shuffle=True, drop_last=True, num_workers=4)
     datasets = [(moments_loader, []), (objectron_loader, []), (yt_faces_loader, [])] #, (davis_loader, [])]
 
