@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader
 from data.moments_loader import MomentsDataset
 from data.objectron_loader import ObjectronDataset
 from data.youtube_faces_loader import YouTubeFacesDataset
+from data.davis_loader import DAVISDataset
 from models.decoders import ClassDecoder
 from models.resnet3d50 import ResNet3D50Backbone
 from utils.training import multidata_train
@@ -63,13 +64,16 @@ if __name__ == '__main__':
     # as it's an iterable dataset
     yt_faces_loader = DataLoader(yt_faces, batch_size=args.bsize, shuffle=False, drop_last=True,
                                  worker_init_fn=YouTubeFacesDataset.worker_init_fn, num_workers=5)
-    datasets = [(moments_loader, []), (objectron_loader, []), (yt_faces_loader, [])]
+    davis = DAVISDataset('/mnt/data/DAVIS', 'training', 16, transform, lambda x: x)
+    davis_loader = DataLoader(davis, batch_size=4, shuffle=True, drop_last=True, num_workers=4)
+    datasets = [(moments_loader, []), (objectron_loader, []), (yt_faces_loader, [])] #, (davis_loader, [])]
 
     # set up remaining training infrastructure
     devices = (args.devices * len(datasets))[:len(datasets)] # if there are more dataset than devices, distribute
     moments_loss = torch.nn.CrossEntropyLoss().cuda()
     objectron_loss = torch.nn.CrossEntropyLoss().cuda()
     yt_faces_loss = NT_Xent(0.1).cuda()
+    davis_loss = torch.nn.BCEWithLogitsLoss().cuda()
     losses = [moments_loss, objectron_loss, yt_faces_loss]
     metrics = [(), (), ()]
     loggers = [Logger(args.logpath, args.ckptpath, logevery=args.ckptinterval)] * len(datasets)
