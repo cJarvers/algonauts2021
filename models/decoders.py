@@ -9,17 +9,22 @@ class ClassDecoder(nn.Module):
     linear layer.
     
     Args:
+        *backbone (torch.nn.Module): network that is applied before the decoder
         *num_classes (int): number of classes to map to
         *maps (int, default=2048): number of input maps
     '''
     
-    def __init__(self, num_classes, maps=2048):
+    def __init__(self, backbone, num_classes, maps=2048):
         super(ClassDecoder, self).__init__()
+        self.backbone = backbone
         self.avgpool = nn.AdaptiveAvgPool3d(1)
         self.fc = nn.Linear(maps, num_classes)
         
     def forward(self, x):
+        x = self.backbone(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x
+        
+

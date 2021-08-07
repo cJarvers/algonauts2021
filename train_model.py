@@ -48,9 +48,10 @@ if __name__ == '__main__':
 
     # set up model and decoders
     backbone = ResNet3D50Backbone
-    moments_decoder = ClassDecoder(305)
-    objectron_decoder = ClassDecoder(9)
-    youtube_faces_decoder = ClassDecoder(64)
+    moments_decoder = lambda backbone: ClassDecoder(backbone, 305)
+    objectron_decoder = lambda backbone: ClassDecoder(backbone, 9)
+    youtube_faces_decoder = lambda backbone: ClassDecoder(backbone, 64)
+    # davis_decoder = . . .
     decoders = [moments_decoder, objectron_decoder, youtube_faces_decoder]
 
     # load datasets
