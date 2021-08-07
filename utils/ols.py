@@ -6,7 +6,6 @@ import random
 import argparse
 import itertools
 import nibabel as nib
-from nilearn import plotting
 from tqdm import tqdm
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.linear_model import LinearRegression
