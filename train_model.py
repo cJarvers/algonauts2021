@@ -37,6 +37,8 @@ parser.add_argument('--logpath', type=str, default='/mnt/logs/', help='Path to s
 parser.add_argument('--ckptpath', type=str, default='/mnt/logs/', help='Path to save checkpoints to.')
 parser.add_argument('--loginterval', type=int, default=1000, help='Number of batches after which to perform validation and log losses & metrics.')
 parser.add_argument('--ckptinterval', type=int, default=1000, help='Number of batches after which to save logs and checkpoints (should be a multiple of loginterval).')
+parser.add_argument('--resume', dest='resume', action='store_true', help='Resume training from pervious checkpoint.')
+parser.set_defaults(resume=False)
 
 def log_fn(epoch, loss, metric, model_dict, decoder_dict, rank):
     None
@@ -58,6 +60,20 @@ if __name__ == '__main__':
     #cityscapes_decoder = lambda backbone: Deconv2DDecoder(backbone, 2048, [512, 256, 128, 64, 64],
     #    [1024, 512, 256, 128, 64], torch.nn.Conv2d(64, 1, kernel_size=1))
     decoders = [moments_decoder, objectron_decoder, youtube_faces_decoder, davis_decoder]
+    # to resume previous training, load weights from previous checkpoint
+    if args.resume: 
+        log = torch.load(logpath + 'rank0.log')
+        batchnum = log['loss'][-1][1]
+        weights = torch.load(f'model_0_b{batchnum}.ckpt')
+        backbone.load_state_dict(weights)
+        weights = torch.load(f'decoder_0_b{batchnum}.ckpt')
+        moments_decoder.load_state_dict(weights)
+        weights = torch.load(f'decoder_1_b{batchnum}.ckpt')
+        objectron_decoder.load_state_dict(weights)
+        weights = torch.load(f'decoder_2_b{batchnum}.ckpt')
+        youtube_faces_decoder.load_state_dict(weights)
+        weights = torch.load(f'decoder_3_b{batchnum}.ckpt')
+        davis_decoder.load_state_dict(weights)
 
     # load datasets
     transform = Compose([ConvertImageDtype(torch.float32), Resize((224, 224))])
