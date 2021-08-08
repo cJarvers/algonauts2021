@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 '''Perform multiGPU training of 3D-ResNet50 model on multiple datasets.'''
 # TODO:
-# - Currently, frames are only converted to float and resized to 224x224.
-#   We may want to add normalization and augmentations.
-# - Only 2 datasets used so far.
+# - Currently, frames are only converted to float, resized to 224x224 and normalized.
+#   We may want to add augmentations.
 # - Currently, we only use training data and log the losses. We may want to
 #   also evaluate accuracy or something similar on validation data.
 # - Currently, the datasets used are hardcoded. It may be nicer to set flags
@@ -73,7 +72,10 @@ if __name__ == '__main__':
     decoders = [moments_decoder, objectron_decoder, youtube_faces_decoder, davis_decoder]
 
     # load datasets
-    transform = Compose([ConvertImageDtype(torch.float32), Resize((224, 224))])
+    transform = Compose([ConvertImageDtype(torch.float32), Resize((224, 224)),
+        trn.Lambda(lambda x: x.permute(1, 0, 2, 3)), # CTHW to TCHW
+        trn.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        trn.Lambda(lambda x: x.permute(1, 0, 2, 3))]) # TCHW to CTHW])
     moments = MomentsDataset('/data/Moments_in_Time_Raw', 'training', 16, transform=transform)
     moments_loader = DataLoader(moments, batch_size=args.bsize, shuffle=True, num_workers=5)
     objectron = ObjectronDataset('/data/objectron', 16, transform=transform)
