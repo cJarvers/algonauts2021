@@ -120,7 +120,7 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
     model = make_backbone().to(dev)
     ddp_model = DDP(model, device_ids=[rank])
     decoder = decoders[rank].to(dev)
-    complete_model = EncoderDecoderPair(ddp_model, decoder)
+    complete_model = EncoderDecoderPair(ddp_model, decoder).to(dev)
     traindata, valdata = datasets[rank]
 
     # print some debug information

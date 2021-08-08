@@ -104,7 +104,7 @@ class UNet3DDecoder(nn.Module):
     
     def __init__(self, inplanes, planes, outplanes, upsample, finallayer):
         super(UNet3DDecoder, self).__init__()
-        self.blocks = []
+        self.blocks = nn.ModuleList()
         for i, p, o, u in zip(inplanes, planes, outplanes, upsample):
             self.blocks.append(Deconv3DBlock(i, p, o, upsample=u))
         self.finallayer = finallayer
