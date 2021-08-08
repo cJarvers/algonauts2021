@@ -56,7 +56,7 @@ if __name__ == '__main__':
     davis_decoder = UNet3DDecoder(inplanes=[2048, 2048, 1024, 512, 128],
         planes=[512, 256, 128, 64, 64], outplanes=[1024, 512, 256, 64, 64],
         upsample=[True, True, True, False, True],
-        finallayer=torch.nn.ConvTranspose3d(64, 1, kernel_size=2, stride=2))
+        finallayer=torch.nn.ConvTranspose3d(64, 1, kernel_size=(1, 2, 2), stride=(1, 2, 2)))
     if args.resume: # to resume previous training, load weights from previous checkpoint
         log = torch.load(logpath + 'rank0.log')
         batchnum = log['loss'][-1][1]
