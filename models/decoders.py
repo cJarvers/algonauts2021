@@ -144,6 +144,8 @@ class Deconv2DBlock(nn.Module):
         y = self.upsample(y)
         return(y)
 
+def identity(x):
+    return x
 
 class Deconv3DBlock(nn.Module):
     '''
@@ -162,7 +164,7 @@ class Deconv3DBlock(nn.Module):
         if upsample:
             self.upsample = nn.Upsample(scale_factor=2)
         else:
-            self.upsample = lambda x: x
+            self.upsample = identity
         
     def forward(self, x):
         y = self.conv1(x)
