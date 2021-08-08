@@ -186,24 +186,24 @@ class DAVISDataset(Dataset):
     '''
     Wrapper for the DAVIS dataset.
     Args:
-        *root_dir (str): Directory from which to load data. Should contain a
-                         folder `frame_images_DB` 
-                         as well as subfolders with training/validation data.
+        *root_dir (str): Directory from which to load data. Should contain
+                         subfolders `Annotations`, `ImageSets`, and `JPEGImages`.
         *phase (str): `training` or `validation`
         *nframes (int): number of frames to subsample every video to
-        *transform: PyTorch transform to apply to the videos/frames
+        *transform: PyTorch transform to apply to the video frames
+        *label_transform: PyTorch transform to apply to the label frames
+        *common_transform: PyTorch transform to apply to both the images and the labels
         *rng_state (int): initial state of the random number generator
     '''
-    def __init__(self, root_dir, phase, nframes, common_transform, augmentation_transform, rng_state=0):
+    def __init__(self, root_dir, phase, nframes, transform=None, label_transform=None,
+        common_transform=None, rng_state=0):
         self.root_dir = root_dir
         self.phase = phase
         self.nframes = nframes
+        self.transform = transform
+        self.label_transform = label_transform
         self.common_transform = common_transform
-        self.augmentation_transform = augmentation_transform
         self.dataset = DAVISDB(root_dir, phase, nframes, rng_state=rng_state)
-        # TODO: compute or load mean and standard deviation over complete dataset
-        #       to normalize videos
-        #       Alternatively, we can add a batch-norm layer at the front of the network
 
     def __getitem__(self, idx):
         (vid, ann) = self.dataset.get_sample(idx)
@@ -211,8 +211,10 @@ class DAVISDataset(Dataset):
         if self.common_transform:
             vid = self.common_transform(vid)
             ann = self.common_transform(ann)
-        if self.augmentation_transform:
-            vid = self.augmentation_transform(vid)
+        if self.transform:
+            vid = self.transform(vid)
+        if self.label_transform:
+            ann = self.label_transform(ann)
         return (vid, ann)
 
 
