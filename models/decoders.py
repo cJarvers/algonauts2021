@@ -3,47 +3,46 @@
 import torch
 import torch.nn as nn
 
+class EncoderDecoderPair(nn.Module):
+    '''
+    Container for an encoder and decoder pair.
+    '''
+    def __init__(self, encoder, decoder):
+        super(EncoderDecoderPair, self).__init__()
+        self.encoder = encoder
+        self.decoder = decoder
+        self.use_features = decoder.needs_features
+        
+    def forward(self, x):
+        if self.use_features:
+            features = self.encoder.features(x)
+        else:
+            features = self.encoder(x)
+        y = self.decoder(features)
+        return(y)
+
+
 class ClassDecoder(nn.Module):
     '''
     Decoder for classification. Performs global average pooling, followed by a
     linear layer.
     
     Args:
-        *backbone (torch.nn.Module): network that is applied before the decoder
         *num_classes (int): number of classes to map to
         *maps (int, default=2048): number of input maps
     '''
+    needs_features = False
     
-    def __init__(self, backbone, num_classes, maps=2048):
+    def __init__(self, num_classes, maps=2048):
         super(ClassDecoder, self).__init__()
-        self.backbone = backbone
         self.avgpool = nn.AdaptiveAvgPool3d(1)
         self.fc = nn.Linear(maps, num_classes)
         
     def forward(self, x):
-        x = self.backbone(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x
-
-def make_moments_decoder(backbone, weights=None):
-    decoder = ClassDecoder(backbone, 305)
-    if weights is not None:
-        decoder.load_state_dict(weights)
-    return(decoder)
-
-def make_objectron_decoder(backbone, weights=None):
-    decoder = ClassDecoder(backbone, 9)
-    if weights is not None:
-        decoder.load_state_dict(weights)
-    return(decoder)
-    
-def make_youtube_faces_decoder(backbone, weights=None):
-    decoder = ClassDecoder(backbone, 64)
-    if weights is not None:
-        decoder.load_state_dict(weights)
-    return(decoder)
 
 
 class Deconv2DDecoder(nn.Module):
@@ -51,19 +50,19 @@ class Deconv2DDecoder(nn.Module):
     Decoder for semantic segmentation and similar pixel-level tasks.
     
     Args:
-        *backbone (torch.nn.Module): encoder network
         *inplanes (int): number of feature maps in output of backbone
         *planes (list of int): number of feature maps to project to in each block
         *outplanes (list of int): number of feature maps each block should return
         *finallayer (torch.nn.Module): final layer
     
     Creates as many `Deconv2DBlock`s as there are `planes` and `outplanes`.
-    Each input x is first passed through the backbone, squeezed, and then passed
-    through each block in turn. Finally, `finallayer` is applied.
+    Input x is first squeezed, then passed through each block in turn.
+    Finally, `finallayer` is applied.
     '''
-    def __init__(self, backbone, inplanes, planes, outplanes, finallayer):
+    needs_features = False
+    
+    def __init__(self, inplanes, planes, outplanes, finallayer):
         super(DeconvDecoder, self).__init__()
-        self.backbone = backbone
         self.blocks = []
         for p, o in zip(planes, outplanes):
             self.blocks.append(Deconv2DBlock(inplanes, p, o))
@@ -71,14 +70,14 @@ class Deconv2DDecoder(nn.Module):
         self.finallayer = finallayer
         
     def forward(self, x):
-        x = self.backbone.forward(x).squeeze()
+        x = x.squeeze()
         for b in self.blocks:
             x = b(x)
         x = self.finallayer(x)
         return(x)
 
 def make_cityscapes_decoder(backbone, weights=None):
-    decoder = Deconv2DDecoder(backbone, 2048, [512, 256, 128, 64, 64],
+    decoder = Deconv2DDecoder(2048, [512, 256, 128, 64, 64],
         [1024, 512, 256, 128, 64], torch.nn.Conv2d(64, 1, kernel_size=1))
     if weights is not None:
         decoder.load_state_dict(weights)
@@ -89,8 +88,6 @@ class UNet3DDecoder(nn.Module):
     Decoder for 3D semantic segmentation and similar pixel-level tasks.
     
     Args:
-        *backbone (torch.nn.Module): encoder network; should have a method called
-            `.features()` that returns intermediate feature maps
         *inplanes (list of int): number of input feature maps to each block
         *planes (list of int): number of feature maps to project to in each block
         *outplanes (list of int): number of feature maps each block should return
@@ -98,36 +95,25 @@ class UNet3DDecoder(nn.Module):
         *finallayer (torch.nn.Module): final layer
     
     Creates as many `Deconv3DBlock`s as there are `planes` and `outplanes`.
-    Each input x is first passed through the backbone's .features method.
+    Input xs should be a list of feature map tensors.
     The last feature is passed trough the first deconv block and the result is
     concatenated with the second-to-last feature. This is then passed through
     the second block and so on. The final output is passed through the `finallayer`.
     '''
-    def __init__(self, backbone, inplanes, planes, outplanes, upsample, finallayer):
+    def __init__(self, inplanes, planes, outplanes, upsample, finallayer):
         super(UNet3DDecoder, self).__init__()
-        self.backbone = backbone
         self.blocks = []
         for i, p, o, u in zip(inplanes, planes, outplanes, upsample):
             self.blocks.append(Deconv3DBlock(i, p, o, upsample=u))
         self.finallayer = finallayer
         
-    def forward(self, x):
-        features = self.backbone.features(x)
+    def forward(self, features):
         features.reverse()
         x = self.blocks[0](features[0])
         for b, f in zip(self.blocks[1:], features[1:]):
             x = b(torch.cat([f, x], dim=1))
         x = self.finallayer(x)
         return(x)
-    
-def make_davis_decoder(backbone, weights=None):
-    decoder = UNet3DDecoder(backbone, inplanes=[2048, 2048, 1024, 512, 128],
-        planes=[512, 256, 128, 64, 64], outplanes=[1024, 512, 256, 64, 64],
-        upsample=[True, True, True, False, True],
-        finallayer=torch.nn.ConvTranspose3d(64, 1, kernel_size=2, stride=2))
-    if weights is not None:
-        decoder.load_state_dict(weights)
-    return(decoder)
         
         
 class Deconv2DBlock(nn.Module):

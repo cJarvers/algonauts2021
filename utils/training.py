@@ -45,6 +45,7 @@ import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel as DDP
 # custom import from our code
 from utils.utils import AverageMeter
+from models.decoders import EncoderDecoderPair
 
 # taken from PyTorch tutorial
 def setup(rank, world_size):
@@ -119,7 +120,7 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
     model = make_backbone().to(dev)
     ddp_model = DDP(model, device_ids=[rank])
     decoder = decoders[rank].to(dev)
-    complete_model = decoder(model)
+    complete_model = EncoderDecoderPair(model, decoder)
     traindata, valdata = datasets[rank]
 
     # print some debug information
