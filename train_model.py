@@ -40,6 +40,8 @@ parser.add_argument('--ckptinterval', type=int, default=1000, help='Number of ba
 parser.add_argument('--resume', dest='resume', action='store_true', help='Resume training from pervious checkpoint.')
 parser.set_defaults(resume=False)
 
+def permutex(x):
+    x.permute(1, 0, 2, 3)
 
 if __name__ == '__main__':
     # parse command line arguments and check that environment is set up
@@ -73,9 +75,9 @@ if __name__ == '__main__':
 
     # load datasets
     transform = Compose([ConvertImageDtype(torch.float32), Resize((224, 224)),
-        Lambda(lambda x: x.permute(1, 0, 2, 3)), # CTHW to TCHW
+        Lambda(permutex), # CTHW to TCHW
         Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-        Lambda(lambda x: x.permute(1, 0, 2, 3))]) # TCHW to CTHW])
+        Lambda(permutex)]) # TCHW to CTHW])
     moments = MomentsDataset('/data/Moments_in_Time_Raw', 'training', 16, transform=transform)
     moments_loader = DataLoader(moments, batch_size=args.bsize, shuffle=True, num_workers=8)
     objectron = ObjectronDataset('/data/objectron', 16, transform=transform)
