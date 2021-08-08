@@ -87,7 +87,7 @@ if __name__ == '__main__':
     # as it's an iterable dataset
     yt_faces_loader = DataLoader(yt_faces, batch_size=args.bsize, shuffle=False, drop_last=True,
                                  worker_init_fn=YouTubeFacesDataset.worker_init_fn, num_workers=8)
-    davis = DAVISDataset('/data/DAVIS', 'training', 16, transform, lambda x: x)
+    davis = DAVISDataset('/data/DAVIS', 'training', 16, transform, label_transform=Resize((224, 224)))
     davis_loader = DataLoader(davis, batch_size=4, shuffle=True, drop_last=True, num_workers=4)
     datasets = [(moments_loader, []), (objectron_loader, []), (yt_faces_loader, []), (davis_loader, [])]
 
