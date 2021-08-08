@@ -22,7 +22,7 @@ from data.moments_loader import MomentsDataset
 from data.objectron_loader import ObjectronDataset
 from data.youtube_faces_loader import YouTubeFacesDataset
 from data.davis_loader import DAVISDataset
-from models.decoders import ClassDecoder
+from models.decoders import ClassDecoder, UNet3DDecoder
 from models.resnet3d50 import ResNet3D50Backbone
 from utils.training import multidata_train
 from utils.utils import Logger
