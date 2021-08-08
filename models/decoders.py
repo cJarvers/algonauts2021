@@ -100,6 +100,8 @@ class UNet3DDecoder(nn.Module):
     concatenated with the second-to-last feature. This is then passed through
     the second block and so on. The final output is passed through the `finallayer`.
     '''
+    needs_features = False
+    
     def __init__(self, inplanes, planes, outplanes, upsample, finallayer):
         super(UNet3DDecoder, self).__init__()
         self.blocks = []
