@@ -159,17 +159,6 @@ class ResNet3D50Backbone(nn.Module):
         x = self.norm1(x)
         x = self.relu(x)
         x = self.pool1(x)
-        x = self.block1(x)
-        x = self.block2(x)
-        x = self.block3(x)
-        x = self.block4(x)
-        return x
-        
-    def features(self, x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu(x)
-        x = self.pool1(x)
         b1 = self.block1(x)
         b2 = self.block2(b1)
         b3 = self.block3(b2)

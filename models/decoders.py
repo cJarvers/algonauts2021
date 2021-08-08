@@ -14,11 +14,11 @@ class EncoderDecoderPair(nn.Module):
         self.use_features = decoder.needs_features
         
     def forward(self, x):
+        features = self.encoder(x)
         if self.use_features:
-            features = self.encoder.features(x)
+            y = self.decoder(features)
         else:
-            features = self.encoder(x)
-        y = self.decoder(features)
+            y = self.decoder(features[-1])
         return(y)
 
 
