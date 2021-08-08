@@ -11,6 +11,7 @@
 
 # standard Python imports
 import argparse
+from functools import partial
 # PyTorch-related imports
 import torch
 import torch.multiprocessing as mp
@@ -21,7 +22,7 @@ from data.moments_loader import MomentsDataset
 from data.objectron_loader import ObjectronDataset
 from data.youtube_faces_loader import YouTubeFacesDataset
 from data.davis_loader import DAVISDataset
-from models.decoders import ClassDecoder, Deconv2DDecoder, UNet3DDecoder
+from models.decoders import make_moments_decoder, make_objectron_decoder, make_youtube_faces_decoder, make_davis_decoder
 from models.resnet3d50 import ResNet3D50Backbone
 from utils.training import multidata_train
 from utils.utils import Logger
@@ -48,30 +49,25 @@ if __name__ == '__main__':
 
     # set up model and decoders
     backbone = ResNet3D50Backbone
-    moments_decoder = lambda backbone: ClassDecoder(backbone, 305)
-    objectron_decoder = lambda backbone: ClassDecoder(backbone, 9)
-    youtube_faces_decoder = lambda backbone: ClassDecoder(backbone, 64)
-    davis_decoder = lambda backbone: UNet3DDecoder(backbone, inplanes=[2048, 2048, 1024, 512, 128],
-        planes=[512, 256, 128, 64, 64], outplanes=[1024, 512, 256, 64, 64],
-        upsample=[True, True, True, False, True],
-        finallayer=torch.nn.ConvTranspose3d(64, 1, kernel_size=2, stride=2))
-    #cityscapes_decoder = lambda backbone: Deconv2DDecoder(backbone, 2048, [512, 256, 128, 64, 64],
-    #    [1024, 512, 256, 128, 64], torch.nn.Conv2d(64, 1, kernel_size=1))
-    decoders = [moments_decoder, objectron_decoder, youtube_faces_decoder, davis_decoder]
-    # to resume previous training, load weights from previous checkpoint
-    if args.resume: 
-        log = torch.load(logpath + 'rank0.log')
-        batchnum = log['loss'][-1][1]
+    if args.resume: # to resume previous training, load weights from previous checkpoint
         weights = torch.load(f'model_0_b{batchnum}.ckpt')
         backbone.load_state_dict(weights)
-        weights = torch.load(f'decoder_0_b{batchnum}.ckpt')
-        moments_decoder.load_state_dict(weights)
-        weights = torch.load(f'decoder_1_b{batchnum}.ckpt')
-        objectron_decoder.load_state_dict(weights)
-        weights = torch.load(f'decoder_2_b{batchnum}.ckpt')
-        youtube_faces_decoder.load_state_dict(weights)
-        weights = torch.load(f'decoder_3_b{batchnum}.ckpt')
-        davis_decoder.load_state_dict(weights)
+        log = torch.load(logpath + 'rank0.log')
+        batchnum = log['loss'][-1][1]
+        moments_weights = torch.load(f'decoder_0_b{batchnum}.ckpt')
+        moments_decoder = partial(make_moments_decoder, weights=moments_weights)
+        objectron_weights = torch.load(f'decoder_1_b{batchnum}.ckpt')
+        objectron_decoder = partial(make_objectron_decoder, weights=objectron_weights)
+        youtube_faces_weights = torch.load(f'decoder_2_b{batchnum}.ckpt')
+        youtube_faces_decoder = partial(make_youtube_faces_decoder, weights=youtube_faces_weights)
+        davis_weights = torch.load(f'decoder_3_b{batchnum}.ckpt')
+        davis_decoder = partial(make_davis_decoder, weights=davis_weights)
+    else:
+        moments_decoder = make_moments_decoder
+        objectron_decoder = make_objectron_decoder
+        youtube_faces_decoder = make_youtube_faces_decoder
+        davis_decoder = make_davis_decoder
+    decoders = [moments_decoder, objectron_decoder, youtube_faces_decoder, davis_decoder]
 
     # load datasets
     transform = Compose([ConvertImageDtype(torch.float32), Resize((224, 224))])

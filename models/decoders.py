@@ -26,8 +26,26 @@ class ClassDecoder(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x
-        
-        
+
+def make_moments_decoder(backbone, weights=None):
+    decoder = ClassDecoder(backbone, 305)
+    if weights is not None:
+        decoder.load_state_dict(weights)
+    return(decoder)
+
+def make_objectron_decoder(backbone, weights=None):
+    decoder = ClassDecoder(backbone, 9)
+    if weights is not None:
+        decoder.load_state_dict(weights)
+    return(decoder)
+    
+def make_youtube_faces_decoder(backbone, weights=None):
+    decoder = ClassDecoder(backbone, 64)
+    if weights is not None:
+        decoder.load_state_dict(weights)
+    return(decoder)
+
+
 class Deconv2DDecoder(nn.Module):
     '''
     Decoder for semantic segmentation and similar pixel-level tasks.
@@ -59,6 +77,12 @@ class Deconv2DDecoder(nn.Module):
         x = self.finallayer(x)
         return(x)
 
+def make_cityscapes_decoder(backbone, weights=None):
+    decoder = Deconv2DDecoder(backbone, 2048, [512, 256, 128, 64, 64],
+        [1024, 512, 256, 128, 64], torch.nn.Conv2d(64, 1, kernel_size=1))
+    if weights is not None:
+        decoder.load_state_dict(weights)
+    return(decoder)
       
 class UNet3DDecoder(nn.Module):
     '''
@@ -95,6 +119,16 @@ class UNet3DDecoder(nn.Module):
             x = b(torch.cat([f, x], dim=1))
         x = self.finallayer(x)
         return(x)
+    
+def make_davis_decoder(backbone, weights=None):
+    decoder = UNet3DDecoder(backbone, inplanes=[2048, 2048, 1024, 512, 128],
+        planes=[512, 256, 128, 64, 64], outplanes=[1024, 512, 256, 64, 64],
+        upsample=[True, True, True, False, True],
+        finallayer=torch.nn.ConvTranspose3d(64, 1, kernel_size=2, stride=2))
+    if weights is not None:
+        decoder.load_state_dict(weights)
+    return(decoder)
+        
         
 class Deconv2DBlock(nn.Module):
     '''
