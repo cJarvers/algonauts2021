@@ -40,8 +40,6 @@ parser.add_argument('--ckptinterval', type=int, default=1000, help='Number of ba
 parser.add_argument('--resume', dest='resume', action='store_true', help='Resume training from pervious checkpoint.')
 parser.set_defaults(resume=False)
 
-def log_fn(epoch, loss, metric, model_dict, decoder_dict, rank):
-    None
 
 if __name__ == '__main__':
     # parse command line arguments and check that environment is set up
@@ -99,6 +97,12 @@ if __name__ == '__main__':
     losses = [moments_loss, objectron_loss, yt_faces_loss, davis_loss]
     metrics = [(), (), (), ()]
     loggers = [Logger(args.logpath, args.ckptpath, logevery=args.ckptinterval)] * len(datasets)
+    if args.resume:
+        for i, l in enumerate(loggers):
+            log = torch.load(logpath + f'rank{i}.log')
+            l.losscurve = log['loss']
+            l.metriccurve = log['metric']
+        
 
     # launch training
     n = args.nprocs
