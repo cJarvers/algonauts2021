@@ -47,8 +47,8 @@ class Logger(object):
         # if the current epoch is a multiple of the 'logevery' interval, write checkpoints and logs to file
         if batch - self.lastlog >= self.logevery:
             torch.save({'loss': self.losscurve, 'metric': self.metriccurve}, self.logpath + f'rank{rank}.log')
-            torch.save(decoder_dict, self.ckptpath + f'decoder_{rank}.ckpt')
-            torch.save(model_dict, self.ckptpath + f'model_{rank}.ckpt')    
+            torch.save(decoder_dict, self.ckptpath + f'decoder_{rank}_b{batch}.ckpt')
+            torch.save(model_dict, self.ckptpath + f'model_{rank}_b{batch}.ckpt')    
             self.lastlog = batch
             
         
