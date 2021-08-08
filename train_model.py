@@ -41,7 +41,7 @@ parser.add_argument('--resume', dest='resume', action='store_true', help='Resume
 parser.set_defaults(resume=False)
 
 def permutex(x):
-    x.permute(1, 0, 2, 3)
+    return(x.permute(1, 0, 2, 3))
 
 if __name__ == '__main__':
     # parse command line arguments and check that environment is set up
