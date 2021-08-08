@@ -14,7 +14,7 @@ from functools import partial
 # PyTorch-related imports
 import torch
 import torch.multiprocessing as mp
-from torchvision.transforms import ConvertImageDtype, Resize, Compose
+from torchvision.transforms import ConvertImageDtype, Resize, Compose, Lambda, Normalize
 from torch.utils.data import DataLoader
 # our custom imports
 from data.moments_loader import MomentsDataset
@@ -73,9 +73,9 @@ if __name__ == '__main__':
 
     # load datasets
     transform = Compose([ConvertImageDtype(torch.float32), Resize((224, 224)),
-        trn.Lambda(lambda x: x.permute(1, 0, 2, 3)), # CTHW to TCHW
-        trn.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-        trn.Lambda(lambda x: x.permute(1, 0, 2, 3))]) # TCHW to CTHW])
+        Lambda(lambda x: x.permute(1, 0, 2, 3)), # CTHW to TCHW
+        Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        Lambda(lambda x: x.permute(1, 0, 2, 3))]) # TCHW to CTHW])
     moments = MomentsDataset('/data/Moments_in_Time_Raw', 'training', 16, transform=transform)
     moments_loader = DataLoader(moments, batch_size=args.bsize, shuffle=True, num_workers=8)
     objectron = ObjectronDataset('/data/objectron', 16, transform=transform)
