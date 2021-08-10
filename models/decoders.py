@@ -53,6 +53,7 @@ class Deconv2DDecoder(nn.Module):
         *inplanes (int): number of feature maps in output of backbone
         *planes (list of int): number of feature maps to project to in each block
         *outplanes (list of int): number of feature maps each block should return
+        *upsample (list of bool): for each block, indicates whether upsampling should occur
         *finallayer (torch.nn.Module): final layer
     
     Creates as many `Deconv2DBlock`s as there are `planes` and `outplanes`.
@@ -61,11 +62,11 @@ class Deconv2DDecoder(nn.Module):
     '''
     needs_features = False
     
-    def __init__(self, inplanes, planes, outplanes, finallayer):
-        super(DeconvDecoder, self).__init__()
-        self.blocks = []
-        for p, o in zip(planes, outplanes):
-            self.blocks.append(Deconv2DBlock(inplanes, p, o))
+    def __init__(self, inplanes, planes, outplanes, upsample, finallayer):
+        super(Deconv2DDecoder, self).__init__()
+        self.blocks = nn.ModuleList()
+        for p, o, u in zip(planes, outplanes, upsample):
+            self.blocks.append(Deconv2DBlock(inplanes, p, o, upsample=u))
             inplanes = o
         self.finallayer = finallayer
         
@@ -123,7 +124,7 @@ class Deconv2DBlock(nn.Module):
     Combines 2D convolutions, groupnorm, and upsampling.
     '''
 
-    def __init__(self, inplanes, planes, outplanes, groups=32):
+    def __init__(self, inplanes, planes, outplanes, groups=32, upsample=True):
         super(Deconv2DBlock, self).__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         self.norm1 = nn.GroupNorm(groups, planes)
@@ -132,6 +133,10 @@ class Deconv2DBlock(nn.Module):
         self.conv3 = nn.Conv2d(planes, outplanes, kernel_size=1, bias=False)
         self.norm3 = nn.GroupNorm(groups, outplanes)
         self.relu = nn.ReLU(inplace=True)
+        if upsample:
+            self.upsample = nn.Upsample(scale_factor=2)
+        else:
+            self.upsample = identity
         
     def forward(self, x):
         y = self.conv1(x)

@@ -68,7 +68,8 @@ if __name__ == '__main__':
         upsample=[True, True, True, False, True],
         finallayer=torch.nn.ConvTranspose3d(64, 2, kernel_size=(1, 2, 2), stride=(1, 2, 2)))
     cityscapes_decoder = Deconv2DDecoder(inplanes=2048, planes=[512, 256, 128, 64, 64],
-        [1024, 512, 256, 128, 64], torch.nn.Conv2d(64, 34, kernel_size=1))
+        outplanes=[1024, 512, 256, 128, 64], upsample=[True, True, True, False, True],
+        finallayer=torch.nn.Conv2d(64, 34, kernel_size=1))
     if args.resume: # to resume previous training, load weights from previous checkpoint
         log = torch.load(logpath + 'rank0.log')
         batchnum = log['loss'][-1][1]
@@ -104,7 +105,7 @@ if __name__ == '__main__':
     label_transform = Compose([Lambda(squeeze), Lambda(tolong), Lambda(truncate), Resize((224, 224))])
     davis = DAVISDataset('/data/DAVIS', 'training', 16, transform, label_transform)
     davis_loader = DataLoader(davis, batch_size=4, shuffle=True, drop_last=True, num_workers=4)
-    label_transform = Compose([Lambda(squeeze), Lambda(tolong), Resize((224, 224))])
+    label_transform = Compose([Lambda(tolong), Resize((224, 224)), Lambda(squeeze)])
     cityscapes = CityscapesDataset('/data/cityscapes', 'training', 16, transform, label_transform)
     cityscapes_loader = DataLoader(cityscapes, batch_size=args.bsize, shuffle=True, num_workers=8)
     datasets = [(moments_loader, []), (objectron_loader, []), (yt_faces_loader, []), (davis_loader, []), (cityscapes_loader, [])]
