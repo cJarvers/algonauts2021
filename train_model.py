@@ -14,7 +14,7 @@ from functools import partial
 # PyTorch-related imports
 import torch
 import torch.multiprocessing as mp
-from torchvision.transforms import ConvertImageDtype, Resize, Compose, Lambda, Normalize, RandomErasing, GaussianBlur, RandomGrayscale, RandomApply
+from torchvision.transforms import ConvertImageDtype, Resize, Compose, Lambda, Normalize, RandomErasing, GaussianBlur, RandomGrayscale, RandomApply, ColorJitter
 from torch.utils.data import DataLoader
 # our custom imports
 from data.moments_loader import MomentsDataset
