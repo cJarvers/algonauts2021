@@ -69,7 +69,7 @@ class MomentsDataset(Dataset):
     # and saving them on disk.
     def __getitem__(self, idx):
         path, label = self.videos[idx]
-        vid, _, _ = torchvision.io.read_video(os.path.join(self.root_dir, self.phase, path))
+        vid, _, _ = torchvision.io.read_video(os.path.join(self.root_dir, self.phase, path), 0.0, 3.0, 'sec')
         vid = subsample(vid, self.nframes)
         vid = vid.movedim(3, 0)
         if self.transform:

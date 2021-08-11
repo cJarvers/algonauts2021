@@ -120,8 +120,8 @@ class DAVISDB():
         Args:
             *root_dir: root directory of the dataset, which contains the data
         '''
-        vids = Path(root_dir) / "JPEGImages" / "Full-Resolution"
-        anns = Path(root_dir) / "Annotations" / "Full-Resolution"
+        vids = Path(root_dir) / "JPEGImages" / "480p"
+        anns = Path(root_dir) / "Annotations" / "480p"
         vid_dirs = DAVISDB._get_subdirs(vids)
         ann_dirs = DAVISDB._get_subdirs(anns)
 

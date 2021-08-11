@@ -39,22 +39,17 @@ class ObjectronDataset(Dataset):
         self.nframes = nframes
         self.transform = transform
         self.videos = get_paths(root_dir, suffix)
-        # TODO: compute or load mean and standard deviation over complete dataset
-        #       to normalize videos
-        #       Alternatively, we can add a batch-norm layer at the front of the network
+        self.suffix = suffix
     
     def __len__(self):
         return(len(self.videos))
     
-    # Getting one video takes about ... on my computer (without any transforms).
-    # If that is not fast enough for us, we should think about precomputing the tensors
-    # and saving them on disk.
     def __getitem__(self, idx):
         path, label = self.videos[idx]
         if self.suffix == '.pt':
             vid = torch.load(path)
         else:
-            vid, _, _ = torchvision.io.read_video(path)
+            vid, _, _ = torchvision.io.read_video(path, 0.0, 3.0, 'sec')
             vid = subsample(vid, self.nframes)
             vid = vid.movedim(3, 0)
         if self.transform:
