@@ -70,22 +70,24 @@ def trainstep(x, y, model, loss_fn, opt, dev):
     opt.step()
     return loss.item()
 
-def valloop(data, model, metric, dev):
+def valloop(data, model, metric, dev, maxbatches=100):
     avgmetric = AverageMeter()
     model.eval()
     with torch.no_grad():
-        for (x, y) in data:
+        for i, (x, y) in enumerate(data):
             x = x.to(dev)
             y = y.to(dev)
             pred = model(x)
             m = metric(pred, y)
             avgmetric.update(loss.item())
+            if i >= maxbatches:
+                break
     model.train()
     return avgmetric.avg
 
 
 def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses, metrics,
-        devices, loggers, batches=1000, loginterval=100, debug=False):
+        devices, loggers, batches=1000, loginterval=100, stepinterval=100, debug=False):
     '''
     Trains the common network `backbone` on several datasets simultaneously.
 
@@ -104,6 +106,7 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
                   model and decoder state_dicts, and process rank.
         *batches (int): Number of batches to train
         *loginterval (int): Number of batches after which to log loss and validation metric.
+        *stepinterval (int): Number of batches after which to trigger the learning rate scheduler.
         *debug (bool): If True, prints some debug information
 
     The lists `datasets`, `decoders`, `losses`, and `devices` have to be of the same length.
@@ -131,6 +134,7 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
     loss_fn = losses[rank]
     eval_fn = metrics[rank]
     optimizer = optim.SGD(complete_model.parameters(), lr=0.001)
+    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
 
     # determine number of epochs according to number of batches
     epochs = ceil(batches / len(traindata))
@@ -147,6 +151,8 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
             loss = trainstep(x, y, complete_model, loss_fn, optimizer, dev)
             avgloss.update(loss)
             batchcounter += 1
+            if (batchcounter + 1) % stepinterval == 0:
+                scheduler.step()
             if batchcounter % loginterval == 0:
                 avgm = valloop(valdata, complete_model, eval_fn, dev)
                 logger.log(e, batchcounter, avgloss.avg, avgm, model.state_dict(), decoder.state_dict(), rank)
