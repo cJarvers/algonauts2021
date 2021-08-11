@@ -232,9 +232,10 @@ class CityscapesDataset(Dataset):
         *transform: PyTorch transform to apply to the video frames
         *label_transform: PyTorch transform to apply to the label frames
         *common_transform: PyTorch transform to apply to both the images and the labels
+        *suffix (str): file suffix to load data from; .pt or .png
         *rng_state (int): initial state of the random number generator
     '''
-    def __init__(self, root_dir, phase, nframes, transform=None, label_transform=None, common_transform=None, rng_state=0):
+    def __init__(self, root_dir, phase, nframes, transform=None, label_transform=None, common_transform=None, suffix='.pt', rng_state=0):
         self.root_dir = root_dir
         self.phase = phase
         self.nframes = nframes
@@ -242,12 +243,27 @@ class CityscapesDataset(Dataset):
         self.label_transform = label_transform
         self.common_transform = common_transform
         self.dataset = CityscapesDB(root_dir, phase, nframes, rng_state=rng_state)
-        # TODO: compute or load mean and standard deviation over complete dataset
-        #       to normalize videos
-        #       Alternatively, we can add a batch-norm layer at the front of the network
+        self.suffix = suffix
+
+    def _shortphase(self):
+        if self.phase == 'training':
+            return('train')
+        elif self.phase == 'validation':
+            return('val')
+        elif self.phase == 'test':
+            return('test')
+        else:
+            raise ValueError(f'Encountered unknown phase: {self.phase}')
 
     def __getitem__(self, idx):
-        (vid, ann) = self.dataset.get_sample(idx)
+        if self.suffix == '.png':
+            (vid, ann) = self.dataset.get_sample(idx)
+        elif self.suffix == '.pt':
+            (city_key, seq_key) = self.dataset.get_ids()[idx]
+            vid_path = os.path.join(self.root_dir, 'leftImg8bit_sequence_trainvaltest', 'leftImg8bit_sequence', self._shortphase(), city_key, seq_key)
+            vid = torch.load(vid_path + self.suffix)
+            ann_path = os.path.join(self.root_dir, 'gtFine_trainvaltest', 'gtFine', self._shortpath(), city_key, seq_key)
+            ann = torch.load(ann_path + self.suffix)
 
         if self.common_transform:
             vid = self.common_transform(vid)
