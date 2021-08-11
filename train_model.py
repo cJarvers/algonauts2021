@@ -38,6 +38,7 @@ parser.add_argument('-b', '--batches', type=int, default=1000, help='Number of b
 parser.add_argument('--logpath', type=str, default='/mnt/logs/', help='Path to save log files to.')
 parser.add_argument('--ckptpath', type=str, default='/mnt/logs/', help='Path to save checkpoints to.')
 parser.add_argument('--loginterval', type=int, default=1000, help='Number of batches after which to perform validation and log losses & metrics.')
+parser.add_argument('--stepinterval', type=int, default=1000, help='Number of batches after which to step the learning rate scheduler.')
 parser.add_argument('--ckptinterval', type=int, default=1000, help='Number of batches after which to save logs and checkpoints (should be a multiple of loginterval).')
 parser.add_argument('--resume', dest='resume', action='store_true', help='Resume training from pervious checkpoint.')
 parser.set_defaults(resume=False)
@@ -138,6 +139,6 @@ if __name__ == '__main__':
     n = args.nprocs
     assert n == len(datasets), 'Number of training processes does not match number of datasets.'
     mp.spawn(multidata_train,
-         args=(n, backbone, datasets, decoders, losses, metrics, devices, loggers, args.batches, args.loginterval, True),
+         args=(n, backbone, datasets, decoders, losses, metrics, devices, loggers, args.batches, args.loginterval, args.stepinterval, True),
          nprocs=n,
          join=True)
