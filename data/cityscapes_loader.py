@@ -265,9 +265,9 @@ class CityscapesDataset(Dataset):
             ann_path = os.path.join(self.root_dir, 'gtFine_trainvaltest', 'gtFine', self._shortphase(), city_key, seq_key)
             ann = torch.load(ann_path + self.suffix)
 
+
         if self.common_transform:
-            vid = self.common_transform(vid)
-            ann = self.common_transform(ann)
+            vid, ann = self.common_transform([vid, ann])
         if self.transform:
             vid = self.transform(vid)
         if self.label_transform:

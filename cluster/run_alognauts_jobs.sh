@@ -8,6 +8,7 @@ JOB_SCRIPT=${CODE_DIRECTORY}/cluster/"algonauts_job_multigpu.sh"
 #JOB_SCRIPT=${CODE_DIRECTORY}/cluster/"algonauts_job_youtubefaces.sh"
 #JOB_SCRIPT=${CODE_DIRECTORY}/cluster/"algonauts_job_davis.sh"
 #JOB_SCRIPT=${CODE_DIRECTORY}/cluster/"algonauts_job_cityscapes.sh"
+#JOB_SCRIPT=${CODE_DIRECTORY}/cluster/"algonauts_job_flippingtrafo.sh"
 DEVELOPER=$(whoami)
 
 # Setup of jobs directory

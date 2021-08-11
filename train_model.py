@@ -22,6 +22,7 @@ from data.objectron_loader import ObjectronDataset
 from data.youtube_faces_loader import YouTubeFacesDataset
 from data.davis_loader import DAVISDataset
 from data.cityscapes_loader import CityscapesDataset
+from data.utils import FlippingTransform
 from models.decoders import ClassDecoder, UNet3DDecoder, Deconv2DDecoder
 from models.resnet3d50 import ResNet3D50Backbone
 from utils.training import multidata_train
@@ -105,9 +106,11 @@ if __name__ == '__main__':
     yt_faces_loader = DataLoader(yt_faces, batch_size=args.bsize, shuffle=False, drop_last=True,
                                  worker_init_fn=YouTubeFacesDataset.worker_init_fn, num_workers=8)
     label_transform = Compose([Lambda(squeeze), Lambda(tolong), Lambda(truncate), Resize((224, 224))])
-    davis = DAVISDataset('/data/DAVIS', 'training', 16, transform, label_transform)
+    common_transform = Compose([FlippingTransform(0.2)])
+    davis = DAVISDataset('/data/DAVIS', 'training', 16, transform, label_transform, common_transform)
     davis_loader = DataLoader(davis, batch_size=4, shuffle=True, drop_last=True, num_workers=4)
-    cityscapes = CityscapesDataset('/data/cityscapes', 'training', 16, obj_transform, None, suffix='.pt')
+    common_transform = Compose([FlippingTransform(0.2)])
+    cityscapes = CityscapesDataset('/data/cityscapes', 'training', 16, obj_transform, None, common_transform, suffix='.pt')
     cityscapes_loader = DataLoader(cityscapes, batch_size=args.bsize, shuffle=True, num_workers=8)
     datasets = [(moments_loader, []), (objectron_loader, []), (yt_faces_loader, []), (davis_loader, []), (cityscapes_loader, [])]
 
@@ -126,7 +129,7 @@ if __name__ == '__main__':
             log = torch.load(logpath + f'rank{i}.log')
             l.losscurve = log['loss']
             l.metriccurve = log['metric']
-        
+
 
     # launch training
     n = args.nprocs
