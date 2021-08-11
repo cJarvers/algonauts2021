@@ -58,10 +58,15 @@ class CityscapesPreprocessor:
             ann = self.label_transform(ann)
         
         if self.phase == 'training':
-            path = os.path.join(self.root_dir, )
-            torch.save(vid, path)
-        elif self.phase = 'validation':
-        
+            vid_path = os.path.join(self.root_dir, 'leftImg8bit_sequence_trainvaltest', 'leftImg8bit_sequence', 'train', city_key, seq_key)
+            torch.save(vid, vid_path + '.pt')
+            ann_path = os.path.join(self.root_dir, 'gtFine_trainvaltest', 'gtFine', 'train', city_key, seq_key)
+            torch.save(ann, ann_path + '.pt')
+        elif self.phase == 'validation':
+            vid_path = os.path.join(self.root_dir, 'leftImg8bit_sequence_trainvaltest', 'leftImg8bit_sequence', 'val', city_key, seq_key)
+            torch.save(vid, vid_path + '.pt')
+            ann_path = os.path.join(self.root_dir, 'gtFine_trainvaltest', 'gtFine', 'val', city_key, seq_key)
+            torch.save(ann, ann_path + '.pt')
         else
             raise ValueError(f'Encountered unknown phase: {self.phase}')
 
