@@ -66,6 +66,6 @@ if __name__ == '__main__':
     print(f'Preprocessing {len(p)} videos. Time: {datetime.datetime.now()}', flush=True)
     for i in range(len(p)):
         p.convert(i)
-        if i+1 % 100 == 0:
+        if (i+1) % 100 == 0:
             print(f'Processed {i+1} videos. Time: {datetime.datetime.now()}', flush=True)
     
