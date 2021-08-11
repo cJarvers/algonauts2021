@@ -51,9 +51,12 @@ class ObjectronDataset(Dataset):
     # and saving them on disk.
     def __getitem__(self, idx):
         path, label = self.videos[idx]
-        vid, _, _ = torchvision.io.read_video(path)
-        vid = subsample(vid, self.nframes)
-        vid = vid.movedim(3, 0)
+        if self.suffix == '.pt':
+            vid = torch.load(path)
+        else:
+            vid, _, _ = torchvision.io.read_video(path)
+            vid = subsample(vid, self.nframes)
+            vid = vid.movedim(3, 0)
         if self.transform:
             vid = self.transform(vid)
         return(vid, label)
