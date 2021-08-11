@@ -69,7 +69,7 @@ if __name__ == '__main__':
         upsample=[True, True, True, False, True],
         finallayer=torch.nn.ConvTranspose3d(64, 2, kernel_size=(1, 2, 2), stride=(1, 2, 2)))
     cityscapes_decoder = Deconv2DDecoder(inplanes=2048, planes=[512, 256, 128, 64, 64],
-        outplanes=[1024, 512, 256, 128, 64], upsample=[True, True, True, False, True],
+        outplanes=[1024, 512, 256, 128, 64], upsample=[True, True, True, True, True],
         finallayer=torch.nn.Conv2d(64, 34, kernel_size=1))
     if args.resume: # to resume previous training, load weights from previous checkpoint
         log = torch.load(logpath + 'rank0.log')
