@@ -93,7 +93,7 @@ if __name__ == '__main__':
     fromfile = Compose([ConvertImageDtype(torch.float32), Resize((224, 224))])
     reshape = Lambda(permutex)
     normalize = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    augment = Compose([RandomGreyscale(p=0.2), RandomApply([GaussianBlur((7,7))], p=0.2), RandomApply([ColorJitter(0.1, 0.1, 0.1, 0.1)], p=0.2), RandomErasing(p=0.2)])
+    augment = Compose([RandomGrayscale(p=0.2), RandomApply([GaussianBlur((7,7))], p=0.2), RandomApply([ColorJitter(0.1, 0.1, 0.1, 0.1)], p=0.2), RandomErasing(p=0.2)])
     moments_transform = Compose([fromfile, reshape, normalize, augment, reshape])
     objectron_transform = Compose([reshape, normalize, augment, reshape])
     yt_transform = Compose([fromfile, reshape, normalize, augment, reshape])
