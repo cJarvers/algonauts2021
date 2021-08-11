@@ -95,7 +95,9 @@ if __name__ == '__main__':
         Lambda(permutex)]) # TCHW to CTHW])
     moments = MomentsDataset('/data/Moments_in_Time_Raw', 'training', 16, transform=transform)
     moments_loader = DataLoader(moments, batch_size=args.bsize, shuffle=True, num_workers=8)
-    objectron = ObjectronDataset('/data/objectron', 16, transform=transform)
+    obj_transform = Compose([Lambda(permutex), Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        Lambda(permutex)])
+    objectron = ObjectronDataset('/data/objectron', 16, transform=obj_transform, suffix='.pt')
     objectron_loader = DataLoader(objectron, batch_size=args.bsize, shuffle=True, num_workers=16)
     yt_faces = YouTubeFacesDataset('/data/YouTubeFaces', 'training', 16, transform=transform)
     # shuffling for yt_faces happens within the dataset implementation
