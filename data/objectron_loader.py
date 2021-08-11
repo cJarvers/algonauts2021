@@ -49,7 +49,7 @@ class ObjectronDataset(Dataset):
         if self.suffix == '.pt':
             vid = torch.load(path)
         else:
-            vid, _, _ = torchvision.io.read_video(path)
+            vid, _, _ = torchvision.io.read_video(path, 0.0, 3.0, 'sec')
             vid = subsample(vid, self.nframes)
             vid = vid.movedim(3, 0)
         if self.transform:
