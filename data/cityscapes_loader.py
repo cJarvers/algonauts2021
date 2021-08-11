@@ -262,7 +262,7 @@ class CityscapesDataset(Dataset):
             (city_key, seq_key) = self.dataset.get_ids()[idx]
             vid_path = os.path.join(self.root_dir, 'leftImg8bit_sequence_trainvaltest', 'leftImg8bit_sequence', self._shortphase(), city_key, seq_key)
             vid = torch.load(vid_path + self.suffix)
-            ann_path = os.path.join(self.root_dir, 'gtFine_trainvaltest', 'gtFine', self._shortpath(), city_key, seq_key)
+            ann_path = os.path.join(self.root_dir, 'gtFine_trainvaltest', 'gtFine', self._shortphase(), city_key, seq_key)
             ann = torch.load(ann_path + self.suffix)
 
         if self.common_transform:
