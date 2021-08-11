@@ -14,7 +14,7 @@ from functools import partial
 # PyTorch-related imports
 import torch
 import torch.multiprocessing as mp
-from torchvision.transforms import ConvertImageDtype, Resize, Compose, Lambda, Normalize
+from torchvision.transforms import ConvertImageDtype, Resize, Compose, Lambda, Normalize, RandomErasing, GaussianBlur, RandomGrayscale, RandomApply
 from torch.utils.data import DataLoader
 # our custom imports
 from data.moments_loader import MomentsDataset
@@ -89,29 +89,32 @@ if __name__ == '__main__':
         cityscapes.load_state_dict(weights)
     decoders = [moments_decoder, objectron_decoder, youtube_faces_decoder, davis_decoder, cityscapes_decoder]
 
+    # set up transforms to apply to data
+    fromfile = Compose([ConvertImageDtype(torch.float32), Resize((224, 224))])
+    reshape = Lambda(permutex)
+    normalize = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    augment = Compose([RandomGreyscale(p=0.2), RandomApply([GaussianBlur((7,7))], p=0.2), RandomApply(ColorJitter(0.1, 0.1, 0.1, 0.1)], p=0.2), RandomErasing(p=0.2)])
+    moments_transform = Compose([fromfile, reshape, normalize, augment, reshape])
+    objectron_transform = Compose([reshape, normalize, augment, reshape])
+    yt_transform = Compose([fromfile, reshape, normalize, augment, reshape])
+    davis_transform = Compose([fromfile, reshape, normalize, augment, reshape])
+    label_transform = Compose([Lambda(squeeze), Lambda(tolong), Lambda(truncate), Resize((224, 224))])
+    common_flip = Compose([FlippingTransform(0.2)])
+    cityscapes_transform = Compose([reshape, normalize, augment, reshape])
     # load datasets
-    transform = Compose([ConvertImageDtype(torch.float32), Resize((224, 224)),
-        Lambda(permutex), # CTHW to TCHW
-        Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-        Lambda(permutex)]) # TCHW to CTHW])
-    moments = MomentsDataset('/data/Moments_in_Time_Raw', 'training', 16, transform=transform)
-    moments_loader = DataLoader(moments, batch_size=args.bsize, shuffle=True, num_workers=8)
-    obj_transform = Compose([Lambda(permutex), Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-        Lambda(permutex)])
-    objectron = ObjectronDataset('/data/objectron', 16, transform=obj_transform, suffix='.pt')
-    objectron_loader = DataLoader(objectron, batch_size=args.bsize, shuffle=True, num_workers=16)
-    yt_faces = YouTubeFacesDataset('/data/YouTubeFaces', 'training', 16, transform=transform)
+    moments = MomentsDataset('/data/Moments_in_Time_Raw', 'training', 16, transform=moments_transform)
+    moments_loader = DataLoader(moments, batch_size=args.bsize, shuffle=True, drop_last=True, num_workers=args.bsize)
+    objectron = ObjectronDataset('/data/objectron', 16, transform=objectron_transform, suffix='.pt')
+    objectron_loader = DataLoader(objectron, batch_size=args.bsize, shuffle=True, drop_last=True, num_workers=args.bsize)
+    yt_faces = YouTubeFacesDataset('/data/YouTubeFaces', 'training', 16, transform=yt_transform)
     # shuffling for yt_faces happens within the dataset implementation
     # as it's an iterable dataset
     yt_faces_loader = DataLoader(yt_faces, batch_size=args.bsize, shuffle=False, drop_last=True,
-                                 worker_init_fn=YouTubeFacesDataset.worker_init_fn, num_workers=8)
-    label_transform = Compose([Lambda(squeeze), Lambda(tolong), Lambda(truncate), Resize((224, 224))])
-    common_transform = Compose([FlippingTransform(0.2)])
-    davis = DAVISDataset('/data/DAVIS', 'training', 16, transform, label_transform, common_transform)
+                                 worker_init_fn=YouTubeFacesDataset.worker_init_fn, num_workers=args.bsize)
+    davis = DAVISDataset('/data/DAVIS', 'training', 16, davis_transform, label_transform, common_flip)
     davis_loader = DataLoader(davis, batch_size=4, shuffle=True, drop_last=True, num_workers=4)
-    common_transform = Compose([FlippingTransform(0.2)])
-    cityscapes = CityscapesDataset('/data/cityscapes', 'training', 16, obj_transform, None, common_transform, suffix='.pt')
-    cityscapes_loader = DataLoader(cityscapes, batch_size=args.bsize, shuffle=True, num_workers=8)
+    cityscapes = CityscapesDataset('/data/cityscapes', 'training', 16, cityscapes_transform, None, common_flip, suffix='.pt')
+    cityscapes_loader = DataLoader(cityscapes, batch_size=args.bsize, shuffle=True, drop_last=True, num_workers=args.bsize)
     datasets = [(moments_loader, []), (objectron_loader, []), (yt_faces_loader, []), (davis_loader, []), (cityscapes_loader, [])]
 
     # set up remaining training infrastructure
