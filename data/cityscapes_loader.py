@@ -58,7 +58,7 @@ class CityscapesDB():
         '''
         sequences = CityscapesDB._get_files_in_dir(vid_dir)
         # get the unique sequences
-        seq_strs = [str(frame.stem).split("_")[1] for frame in sequences if not str(frame.stem)[-3:] == '.pt']
+        seq_strs = [str(frame.stem).split("_")[1] for frame in sequences if not str(frame)[-3:] == '.pt']
         seqs = np.unique(seq_strs)
 
         # there should be an annotation per sequence
