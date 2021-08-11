@@ -107,7 +107,7 @@ if __name__ == '__main__':
     label_transform = Compose([Lambda(squeeze), Lambda(tolong), Lambda(truncate), Resize((224, 224))])
     davis = DAVISDataset('/data/DAVIS', 'training', 16, transform, label_transform)
     davis_loader = DataLoader(davis, batch_size=4, shuffle=True, drop_last=True, num_workers=4)
-    cityscapes = CityscapesDataset('/data/cityscapes', 'training', 16, obj_transform, None)
+    cityscapes = CityscapesDataset('/data/cityscapes', 'training', 16, obj_transform, None, suffix='.pt')
     cityscapes_loader = DataLoader(cityscapes, batch_size=args.bsize, shuffle=True, num_workers=8)
     datasets = [(moments_loader, []), (objectron_loader, []), (yt_faces_loader, []), (davis_loader, []), (cityscapes_loader, [])]
 
