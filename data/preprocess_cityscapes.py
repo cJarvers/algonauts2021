@@ -67,7 +67,7 @@ class CityscapesPreprocessor:
             torch.save(vid, vid_path + '.pt')
             ann_path = os.path.join(self.root_dir, 'gtFine_trainvaltest', 'gtFine', 'val', city_key, seq_key)
             torch.save(ann, ann_path + '.pt')
-        else
+        else:
             raise ValueError(f'Encountered unknown phase: {self.phase}')
 
 
