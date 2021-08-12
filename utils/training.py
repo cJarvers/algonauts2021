@@ -133,7 +133,8 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
 
     loss_fn = losses[rank]
     eval_fn = metrics[rank]
-    optimizer = optim.SGD(complete_model.parameters(), lr=0.001)
+#    optimizer = optim.SGD(complete_model.parameters(), lr=0.00003)
+    optimizer = optim.AdamW(complete_model.parameters(), lr=0.0001)
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
 
     # determine number of epochs according to number of batches

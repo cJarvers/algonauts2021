@@ -107,7 +107,8 @@ class ResNet3D50Backbone(nn.Module):
     '''
     3D ResNet50 backbone (convolutional / residual layers only, not fc layers).
     '''
-    
+    old_state_dict = None
+
     def __init__(self, blocktype=BottleneckBlock, layers=[3, 4, 6, 3], groups=32):
         super(ResNet3D50Backbone, self).__init__()
         # set up initial (non-residual) convolution
@@ -121,7 +122,13 @@ class ResNet3D50Backbone(nn.Module):
         self.block2 = self._make_layer(blocktype, 128, layers[1], groups=groups, stride=2)
         self.block3 = self._make_layer(blocktype, 256, layers[2], groups=groups, stride=2)
         self.block4 = self._make_layer(blocktype, 512, layers[3], groups=groups, stride=2)
-        
+        if self.old_state_dict != None:
+            self.load_state_dict(self.old_state_dict)
+            self.old_state_dict = None # isn't needed any longer
+
+    @classmethod
+    def load_state_dict_delayed(cls, old_state_dict):
+        cls.old_state_dict = old_state_dict
 
     def _make_layer(self, blocktype, planes, repetitions, groups=32, stride=1):
         # choose whether to downsample
