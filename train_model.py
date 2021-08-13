@@ -75,20 +75,20 @@ if __name__ == '__main__':
     # set up for resuming job
     batchnum = 0
     if args.resume: # to resume previous training, load weights from previous checkpoint
-        log = torch.load(logpath + 'rank0.log')
+        log = torch.load(args.logpath + 'rank0.log')
         batchnum = log['loss'][-1][1]
         # load weights
-        weights = torch.load(f'model_0_b{batchnum}.ckpt')
+        weights = torch.load(args.ckptpath + f'model_0_b{batchnum}.ckpt')
         backbone.load_state_dict(weights)
-        weights = torch.load(f'decoder_0_b{batchnum}.ckpt')
+        weights = torch.load(args.ckptpath + f'decoder_0_b{batchnum}.ckpt')
         moments_decoder.load_state_dict(weights)
-        weights = torch.load(f'decoder_1_b{batchnum}.ckpt')
+        weights = torch.load(args.ckptpath + f'decoder_1_b{batchnum}.ckpt')
         objectron_decoder.load_state_dict(weights)
-        weights = torch.load(f'decoder_2_b{batchnum}.ckpt')
+        weights = torch.load(args.ckptpath + f'decoder_2_b{batchnum}.ckpt')
         youtube_faces_decoder.load_state_dict(weights)
-        weights = torch.load(f'decoder_3_b{batchnum}.ckpt')
+        weights = torch.load(args.ckptpath + f'decoder_3_b{batchnum}.ckpt')
         davis_decoder.load_state_dict(weights)
-        weights = torch.load(f'decoder_4_b{batchnum}.ckpt')
+        weights = torch.load(args.ckptpath + f'decoder_4_b{batchnum}.ckpt')
         cityscapes.load_state_dict(weights)
     decoders = [moments_decoder, objectron_decoder, youtube_faces_decoder, davis_decoder, cityscapes_decoder]
 
