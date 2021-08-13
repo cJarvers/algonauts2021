@@ -86,7 +86,7 @@ def valloop(data, model, metric, dev, maxbatches=100):
     return avgmetric.avg
 
 
-def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses, metrics,
+def multidata_train(rank, world_size, backbone, datasets, decoders, losses, metrics,
         devices, loggers, startbatch=0, batches=1000, loginterval=100, stepinterval=100, debug=False):
     '''
     Trains the common network `backbone` on several datasets simultaneously.
@@ -94,7 +94,7 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
     Args:
         *rank (int): Process number that the current copy of the function is run on.
         *world_size (int): Number of processes on which the function is run in parallel.
-        *make_backbone: Constructor for network component that is common across all datasets
+        *backbone: Network component that is common across all datasets
         *datasets: The datasets to train on. Each should be a pair of iterables
                    (training and validation loaders).
         *decoders: The network components that differ for each dataset.
@@ -121,7 +121,7 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
     # set up distributed processing and DDP model
     setup(rank, world_size)
     dev = devices[rank]
-    model = make_backbone().to(dev)
+    model = backbone.to(dev)
     ddp_model = DDP(model, device_ids=[rank])
     decoder = decoders[rank].to(dev)
     complete_model = EncoderDecoderPair(ddp_model, decoder).to(dev)

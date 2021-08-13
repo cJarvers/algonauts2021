@@ -61,7 +61,7 @@ if __name__ == '__main__':
     assert torch.cuda.is_available(), 'Script requires GPU, but cuda not available.'
 
     # set up model and decoders
-    backbone = ResNet3D50Backbone
+    backbone = ResNet3D50Backbone()
     moments_decoder = ClassDecoder(305)
     objectron_decoder = ClassDecoder(9)
     youtube_faces_decoder = ClassDecoder(64)
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     loggers = [Logger(args.logpath, args.ckptpath, logevery=args.ckptinterval)] * len(datasets)
     if args.resume:
         for i, l in enumerate(loggers):
-            log = torch.load(logpath + f'rank{i}.log')
+            log = torch.load(args.logpath + f'rank{i}.log')
             l.losscurve = log['loss']
             l.metriccurve = log['metric']
 
