@@ -72,6 +72,8 @@ if __name__ == '__main__':
     cityscapes_decoder = Deconv2DDecoder(inplanes=2048, planes=[512, 256, 128, 64, 64],
         outplanes=[1024, 512, 256, 128, 64], upsample=[True, True, True, True, True],
         finallayer=torch.nn.Conv2d(64, 34, kernel_size=1))
+    # set up for resuming job
+    batchnum = 0
     if args.resume: # to resume previous training, load weights from previous checkpoint
         log = torch.load(logpath + 'rank0.log')
         batchnum = log['loss'][-1][1]
@@ -139,6 +141,6 @@ if __name__ == '__main__':
     n = args.nprocs
     assert n == len(datasets), 'Number of training processes does not match number of datasets.'
     mp.spawn(multidata_train,
-         args=(n, backbone, datasets, decoders, losses, metrics, devices, loggers, args.batches, args.loginterval, args.stepinterval, True),
+         args=(n, backbone, datasets, decoders, losses, metrics, devices, loggers, batchnum, args.batches, args.loginterval, args.stepinterval, True),
          nprocs=n,
          join=True)

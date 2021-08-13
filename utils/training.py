@@ -87,7 +87,7 @@ def valloop(data, model, metric, dev, maxbatches=100):
 
 
 def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses, metrics,
-        devices, loggers, batches=1000, loginterval=100, stepinterval=100, debug=False):
+        devices, loggers, startbatch=0, batches=1000, loginterval=100, stepinterval=100, debug=False):
     '''
     Trains the common network `backbone` on several datasets simultaneously.
 
@@ -104,6 +104,7 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
         *loggers: List of loggers (one per process). Should have a method .log that receives
                   the epoch number, batch number, average loss and metric,
                   model and decoder state_dicts, and process rank.
+        *startbatch (int): Batch number at which to start
         *batches (int): Number of batches to train
         *loginterval (int): Number of batches after which to log loss and validation metric.
         *stepinterval (int): Number of batches after which to trigger the learning rate scheduler.
@@ -135,11 +136,13 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
     eval_fn = metrics[rank]
     optimizer = optim.SGD(complete_model.parameters(), lr=0.001)
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
+    for _ in range(startbatch // stepinterval):
+        scheduler.step()
 
     # determine number of epochs according to number of batches
     epochs = ceil(batches / len(traindata))
     # set up logging infrastructure for training loop
-    batchcounter = 0
+    batchcounter = startbatch
     avgloss = AverageMeter()
     logger = loggers[rank]
 
@@ -159,7 +162,7 @@ def multidata_train(rank, world_size, make_backbone, datasets, decoders, losses,
                 if debug:
                     print(f'Process {rank}, epoch {e}, batch {i+1}|{batchcounter}: loss {avgloss.avg} at time {datetime.datetime.now()}', flush=True)
                 avgloss.reset()
-            if batchcounter >= batches:
+            if batchcounter >= (startbatch + batches):
                 break
 
     if debug:
