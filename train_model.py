@@ -129,7 +129,7 @@ if __name__ == '__main__':
     cityscapes_loss = torch.nn.CrossEntropyLoss().cuda()
     losses = [moments_loss, objectron_loss, yt_faces_loss, davis_loss, cityscapes_loss]
     metrics = [(), (), (), (), ()]
-    loggers = [Logger(args.logpath, args.ckptpath, logevery=args.ckptinterval)] * len(datasets)
+    loggers = [Logger(args.logpath, args.ckptpath, logevery=args.ckptinterval) for _ in range(len(datasets))]
     if args.resume:
         for i, l in enumerate(loggers):
             log = torch.load(args.logpath + f'rank{i}.log')
